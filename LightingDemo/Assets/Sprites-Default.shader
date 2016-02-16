@@ -4,7 +4,6 @@ Shader "Sprites/SS2DLit"
 	{
 		[PerRendererData] _MainTex ("Sprite Texture", 2D) = "white" {}
 		_Color ("Tint", Color) = (1,1,1,1)
-		_LightStrength("Lighting Strength", Float) = 0.1
 		_SpriteLightness("Sprite Lightness", Float) = 0.1
 		_LightTex("Light Texture", 2D) = "white" {}
 		[MaterialToggle] PixelSnap ("Pixel snap", Float) = 0
@@ -74,11 +73,10 @@ Shader "Sprites/SS2DLit"
 			}
 
 			sampler2D _LightTex;
-			float _LightStrength;
 			//This samples the light texture
 			fixed4 SampleLightTexture(float2 uv)
 			{
-				fixed4 color = tex2D(_LightTex, uv) * _LightStrength;
+				fixed4 color = tex2D(_LightTex, uv);
 				return color;
 			}
 
@@ -87,11 +85,12 @@ Shader "Sprites/SS2DLit"
 			{
 				fixed4 lc = SampleLightTexture(IN.scrPos);
 				fixed4 c = SampleSpriteTexture(IN.texcoord);
-				float mod = lc.r + lc.g + lc.b;
-				mod /= 3;
-				if (mod == 0) {
-					c.rgb *= _SpriteLightness;
-				}
+				//lc.r 0 = no light
+				//lc.r 1 = full light
+
+				c.rgb *= _SpriteLightness;
+				c.rgb += lc.rgb;
+				c.rgb *= c.a;
 				return c;
 			}
 		ENDCG

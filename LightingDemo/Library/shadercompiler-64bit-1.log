@@ -1,0 +1,135 @@
+Base path: D:/Program Files (x86)/Unity 5.2.1/Unity/Editor/Data
+Pipe name: \\.\pipe\UnityShaderCompiler-64bit-1-11108
+Cmd: getPlatforms
+Cmd: preprocess
+  insize=2056 outsize=688 ok=1
+Cmd: compileSnippet
+  api=4 type=0 insize=1670 outsize=1688 kw= pd= ok=1
+Cmd: compileSnippet
+  api=4 type=1 insize=1670 outsize=1379 kw= pd= ok=1
+Cmd: compileSnippet
+  api=4 type=0 insize=1670 outsize=2046 kw=PIXELSNAP_ON pd= ok=1
+Cmd: compileSnippet
+  api=4 type=1 insize=1670 outsize=1379 kw=PIXELSNAP_ON pd= ok=1
+Cmd: preprocess
+  insize=2036 outsize=688 ok=1
+Cmd: compileSnippet
+  api=4 type=0 insize=1650 outsize=1688 kw= pd= ok=1
+Cmd: compileSnippet
+  api=4 type=1 insize=1650 outsize=1363 kw= pd= ok=1
+Cmd: compileSnippet
+  api=4 type=0 insize=1650 outsize=2046 kw=PIXELSNAP_ON pd= ok=1
+Cmd: compileSnippet
+  api=4 type=1 insize=1650 outsize=1363 kw=PIXELSNAP_ON pd= ok=1
+Cmd: preprocess
+  insize=2043 outsize=688 ok=1
+Cmd: compileSnippet
+  error: 2 plat 4 at (92): syntax error: unexpected token 'f'\nCompiling Vertex program
+  api=4 type=0 insize=1657 outsize=0 kw= pd= ok=0
+Cmd: preprocess
+  insize=2044 outsize=688 ok=1
+Cmd: compileSnippet
+  api=4 type=0 insize=1658 outsize=1688 kw= pd= ok=1
+Cmd: compileSnippet
+  api=4 type=1 insize=1658 outsize=1388 kw= pd= ok=1
+Cmd: compileSnippet
+  api=4 type=0 insize=1658 outsize=2046 kw=PIXELSNAP_ON pd= ok=1
+Cmd: compileSnippet
+  api=4 type=1 insize=1658 outsize=1388 kw=PIXELSNAP_ON pd= ok=1
+Cmd: preprocess
+  insize=1996 outsize=688 ok=1
+Cmd: compileSnippet
+  api=4 type=0 insize=1610 outsize=1688 kw= pd= ok=1
+Cmd: compileSnippet
+  api=4 type=1 insize=1610 outsize=1217 kw= pd= ok=1
+Cmd: compileSnippet
+  api=4 type=0 insize=1610 outsize=2046 kw=PIXELSNAP_ON pd= ok=1
+Cmd: compileSnippet
+  api=4 type=1 insize=1610 outsize=1217 kw=PIXELSNAP_ON pd= ok=1
+Cmd: preprocess
+  insize=2010 outsize=688 ok=1
+Cmd: compileSnippet
+  error: 2 plat 4 at (90): syntax error: unexpected token 'f'\nCompiling Vertex program
+  error: 2 plat 4 at (93): syntax error: unexpected token 'return'\nCompiling Vertex program
+  api=4 type=0 insize=1624 outsize=0 kw= pd= ok=0
+Cmd: preprocess
+  insize=2011 outsize=688 ok=1
+Cmd: compileSnippet
+  error: 2 plat 4 at (90): if statement conditional expressions must evaluate to a scalar\nCompiling Vertex program
+  api=4 type=0 insize=1625 outsize=0 kw= pd= ok=0
+Cmd: preprocess
+  insize=2010 outsize=688 ok=1
+Cmd: compileSnippet
+  error: 2 plat 4 at (90): if statement conditional expressions must evaluate to a scalar\nCompiling Vertex program
+  api=4 type=0 insize=1624 outsize=0 kw= pd= ok=0
+Cmd: preprocess
+  insize=2008 outsize=688 ok=1
+Cmd: compileSnippet
+  error: 2 plat 4 at (90): if statement conditional expressions must evaluate to a scalar\nCompiling Vertex program
+  api=4 type=0 insize=1622 outsize=0 kw= pd= ok=0
+Cmd: preprocess
+  insize=2006 outsize=688 ok=1
+Cmd: compileSnippet
+  api=4 type=0 insize=1620 outsize=1688 kw= pd= ok=1
+Cmd: compileSnippet
+  api=4 type=1 insize=1620 outsize=1241 kw= pd= ok=1
+Cmd: compileSnippet
+  api=4 type=0 insize=1620 outsize=2046 kw=PIXELSNAP_ON pd= ok=1
+Cmd: compileSnippet
+  api=4 type=1 insize=1620 outsize=1241 kw=PIXELSNAP_ON pd= ok=1
+Cmd: preprocess
+  insize=2007 outsize=688 ok=1
+Cmd: compileSnippet
+  api=4 type=0 insize=1621 outsize=1688 kw= pd= ok=1
+Cmd: compileSnippet
+  api=4 type=1 insize=1621 outsize=1241 kw= pd= ok=1
+Cmd: compileSnippet
+  api=4 type=0 insize=1621 outsize=2046 kw=PIXELSNAP_ON pd= ok=1
+Cmd: compileSnippet
+  api=4 type=1 insize=1621 outsize=1241 kw=PIXELSNAP_ON pd= ok=1
+Cmd: preprocess
+  insize=1956 outsize=637 ok=1
+Cmd: compileSnippet
+  api=4 type=0 insize=1621 outsize=1688 kw= pd= ok=1
+Cmd: compileSnippet
+  api=4 type=1 insize=1621 outsize=1241 kw= pd= ok=1
+Cmd: compileSnippet
+  api=4 type=0 insize=1621 outsize=2046 kw=PIXELSNAP_ON pd= ok=1
+Cmd: compileSnippet
+  api=4 type=1 insize=1621 outsize=1241 kw=PIXELSNAP_ON pd= ok=1
+Cmd: preprocess
+  insize=1914 outsize=637 ok=1
+Cmd: compileSnippet
+  api=4 type=0 insize=1579 outsize=1688 kw= pd= ok=1
+Cmd: compileSnippet
+  api=4 type=1 insize=1579 outsize=1176 kw= pd= ok=1
+Cmd: compileSnippet
+  api=4 type=0 insize=1579 outsize=2046 kw=PIXELSNAP_ON pd= ok=1
+Cmd: compileSnippet
+  api=4 type=1 insize=1579 outsize=1176 kw=PIXELSNAP_ON pd= ok=1
+Cmd: preprocess
+  insize=1932 outsize=637 ok=1
+Cmd: compileSnippet
+  api=4 type=0 insize=1597 outsize=1688 kw= pd= ok=1
+Cmd: compileSnippet
+  api=4 type=1 insize=1597 outsize=1233 kw= pd= ok=1
+Cmd: compileSnippet
+  api=4 type=0 insize=1597 outsize=2046 kw=PIXELSNAP_ON pd= ok=1
+Cmd: compileSnippet
+  api=4 type=1 insize=1597 outsize=1233 kw=PIXELSNAP_ON pd= ok=1
+Cmd: preprocess
+  insize=4025 outsize=616 ok=1
+Cmd: compileSnippet
+  api=4 type=0 insize=2042 outsize=1014 kw= pd= ok=1
+Cmd: compileSnippet
+  api=4 type=1 insize=2042 outsize=3606 kw= pd= ok=1
+Cmd: compileSnippet
+  api=4 type=0 insize=1978 outsize=1014 kw= pd= ok=1
+Cmd: compileSnippet
+  api=4 type=1 insize=1978 outsize=3630 kw= pd= ok=1
+Cmd: preprocess
+  insize=2942 outsize=473 ok=1
+Cmd: compileSnippet
+  api=4 type=0 insize=2773 outsize=1014 kw= pd= ok=1
+Cmd: compileSnippet
+  api=4 type=1 insize=2773 outsize=6198 kw= pd= ok=1
