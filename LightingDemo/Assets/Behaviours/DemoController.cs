@@ -11,7 +11,8 @@ public class DemoController : MonoBehaviour {
     public Toggle lightingToggle;
 
     public Material spriteMaterial;
-    public Mesh_Light playerLight;
+    public Mesh_Light meshLight;
+    public Shader_Light shaderLight;
 
     bool OptionsPanelShown = false;
     bool isAnimatingOptionsPanel = false;
@@ -21,10 +22,10 @@ public class DemoController : MonoBehaviour {
 	// Use this for initialization
 	void Start ()
     {
-        R.value = playerLight.lightColor.r;
-        G.value = playerLight.lightColor.g;
-        B.value = playerLight.lightColor.b;
-        A.value = playerLight.lightColor.a;
+        R.value = meshLight.lightColor.r;
+        G.value = meshLight.lightColor.g;
+        B.value = meshLight.lightColor.b;
+        A.value = meshLight.lightColor.a;
         lightingToggle.isOn = spriteMaterial.GetFloat("_ScreenSpaceLighting") == 1f;
     }
 	
@@ -48,22 +49,26 @@ public class DemoController : MonoBehaviour {
 
     public void ChangeLightR(float r)
     {
-        playerLight.lightColor.r = r;
+        meshLight.lightColor.r = r;
+        shaderLight.m_lightColor.r = r;
     }
 
     public void ChangeLightG(float r)
     {
-        playerLight.lightColor.g = r;
+        meshLight.lightColor.g = r;
+        shaderLight.m_lightColor.g = r;
     }
 
     public void ChangeLightB(float r)
     {
-        playerLight.lightColor.b = r;
+        meshLight.lightColor.b = r;
+        shaderLight.m_lightColor.b = r;
     }
 
     public void ChangeLightA(float r)
     {
-        playerLight.lightColor.a = r;
+        meshLight.lightColor.a = r;
+        shaderLight.m_lightColor.a = r;
     }
     
     public void ToggleOptionsPanel()
@@ -103,6 +108,11 @@ public class DemoController : MonoBehaviour {
 
     public void TogglePlayerLight(bool toggle)
     {
-        playerLight.transform.gameObject.SetActive(toggle);
+        meshLight.transform.gameObject.SetActive(toggle);
+    }
+
+    public void ToggleShaderLight(bool toggle)
+    {
+        shaderLight.transform.gameObject.SetActive(toggle);
     }
 }
