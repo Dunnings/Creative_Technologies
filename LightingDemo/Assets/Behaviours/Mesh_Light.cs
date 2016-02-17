@@ -89,13 +89,25 @@ public class Mesh_Light : MonoBehaviour
         {
             meshFilter = GetComponent<MeshFilter>();
         }
-        
+
+        meshFilter.mesh = new Mesh();
+        meshRenderer.material = lightMaterialInstance;
+
+        secondaryMeshFilter.mesh = new Mesh();
+        secondaryRenderer.material = lightMaterialInstance;
+
         staticSegments.Clear();
         staticEndpoints.Clear();
         dynamicSegments.Clear();
         dynamicEndPoints.Clear();
         CreateSegmentsFromColliders();
         UpdateLightPosition();
+
+    }
+
+    public void Update()
+    {
+        lightMaterialInstance.color = lightColor;
     }
 
     public void UpdateSegmentsForGameObject(PolygonCollider2D go)
@@ -160,17 +172,6 @@ public class Mesh_Light : MonoBehaviour
         }
         UpdateLightPosition();
 
-        if (Input.GetKeyDown(KeyCode.L))
-        {
-            GetAllColliders();
-            //Static colliders
-            staticSegments.Clear();
-            staticEndpoints.Clear();
-            dynamicSegments.Clear();
-            dynamicEndPoints.Clear();
-            CreateSegmentsFromColliders();
-            UpdateLightPosition();
-        }
         if (center.x != transform.position.x || center.y != transform.position.y)
         {
             UpdateLightPosition();
@@ -201,7 +202,18 @@ public class Mesh_Light : MonoBehaviour
     {
         if (m_findAllColliders)
         {
-            colliders = FindObjectsOfType<PolygonCollider2D>();
+            PolygonCollider2D[] old = colliders;
+            List<PolygonCollider2D> results = new List<PolygonCollider2D>(FindObjectsOfType<PolygonCollider2D>());
+            int originalLength = colliders.Length;
+            colliders = new PolygonCollider2D[originalLength + results.Count];
+            for (int i = 0; i < originalLength; i++)
+            {
+                colliders[i] = old[i];
+            }
+            for (int i = 0; i < results.Count; i++)
+            {
+                colliders[i + originalLength] = results[i];
+            }
         }
     }
 
@@ -258,11 +270,6 @@ public class Mesh_Light : MonoBehaviour
             return;
         }
 
-        Mesh mesh = new Mesh();
-        meshFilter.mesh = mesh;
-
-        meshRenderer.material = lightMaterialInstance;
-
         Vector3 center = transform.position;
 
         Vector3[] vertices = new Vector3[poly.Count + 1];
@@ -272,8 +279,8 @@ public class Mesh_Light : MonoBehaviour
         {
             vertices[i + 1] = poly[i] - center;
         }
-
-        mesh.vertices = vertices;
+        meshFilter.mesh.Clear();
+        meshFilter.mesh.vertices = vertices;
 
         int[] triangles = new int[poly.Count * 3];
 
@@ -288,17 +295,15 @@ public class Mesh_Light : MonoBehaviour
         triangles[(poly.Count - 1) * 3 + 1] = 0;
         triangles[(poly.Count - 1) * 3 + 2] = poly.Count;
 
-        mesh.triangles = triangles;
-        mesh.uv = BuildUVs(vertices);
-        
-        mesh.RecalculateBounds();
-        mesh.RecalculateNormals();
+        meshFilter.mesh.triangles = triangles;
+        meshFilter.mesh.uv = BuildUVs(vertices);
+
+        meshFilter.mesh.RecalculateBounds();
+        meshFilter.mesh.RecalculateNormals();
 
         if (m_secondaryMesh)
         {
-
-            Mesh mesh2 = new Mesh();
-            secondaryMeshFilter.mesh = mesh2;
+            secondaryMeshFilter.mesh.Clear();
 
             secondaryRenderer.material = lightMaterialInstance;
 
@@ -312,13 +317,13 @@ public class Mesh_Light : MonoBehaviour
                 vertices2[i + 1] = (poly[i] - center) + ((poly[i] - center).normalized * 0.15f);
             }
 
-            mesh2.vertices = vertices2;
-            
-            mesh2.triangles = triangles;
-            mesh2.uv = BuildUVs(vertices2);
+            secondaryMeshFilter.mesh.vertices = vertices2;
 
-            mesh2.RecalculateBounds();
-            mesh2.RecalculateNormals();
+            secondaryMeshFilter.mesh.triangles = triangles;
+            secondaryMeshFilter.mesh.uv = BuildUVs(vertices2);
+
+            secondaryMeshFilter.mesh.RecalculateBounds();
+            secondaryMeshFilter.mesh.RecalculateNormals();
         }
         else
         {

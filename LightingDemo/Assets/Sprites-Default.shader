@@ -7,6 +7,7 @@ Shader "Sprites/SS2DLit"
 		_SpriteLightness("Sprite Lightness", Float) = 0.1
 		_LightTex("Light Texture", 2D) = "white" {}
 		[MaterialToggle] PixelSnap ("Pixel snap", Float) = 0
+		[Toggle] _ScreenSpaceLighting("Screen Space Lighting", Float) = 0
 	}
 
 	SubShader
@@ -80,6 +81,7 @@ Shader "Sprites/SS2DLit"
 				return color;
 			}
 
+			float _ScreenSpaceLighting;
 			float _SpriteLightness;
 			fixed4 frag(v2f IN) : SV_Target
 			{
@@ -88,8 +90,10 @@ Shader "Sprites/SS2DLit"
 				//lc.r 0 = no light
 				//lc.r 1 = full light
 
-				c.rgb *= _SpriteLightness;
-				c.rgb += lc.rgb;
+				if (_ScreenSpaceLighting != 0) {
+					c.rgb *= _SpriteLightness;
+					c.rgb += lc.rgb * 2;
+				}
 				c.rgb *= c.a;
 				return c;
 			}
