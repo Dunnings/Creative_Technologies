@@ -9,6 +9,8 @@ public class DemoController : MonoBehaviour {
     public Slider B;
     public Slider A;
     public Toggle lightingToggle;
+    public Toggle meshToggle;
+    public Toggle shaderToggle;
 
     public Material spriteMaterial;
     public Mesh_Light meshLight;
@@ -17,7 +19,7 @@ public class DemoController : MonoBehaviour {
     bool OptionsPanelShown = false;
     bool isAnimatingOptionsPanel = false;
     float OpenPosition = 0f;
-    float ClosedPosition = -200f;
+    float ClosedPosition = -180f;
 
 	// Use this for initialization
 	void Start ()
@@ -91,6 +93,7 @@ public class DemoController : MonoBehaviour {
                 d += Time.deltaTime;
                 yield return new WaitForFixedUpdate();
             }
+                transform.position = new Vector3(ClosedPosition, transform.position.y, transform.position.z);
         }
         else
         {
@@ -101,18 +104,26 @@ public class DemoController : MonoBehaviour {
                 d += Time.deltaTime;
                 yield return new WaitForFixedUpdate();
             }
+            transform.position = new Vector3(OpenPosition, transform.position.y, transform.position.z);
         }
         OptionsPanelShown = !OptionsPanelShown;
         isAnimatingOptionsPanel = false;
     }
 
-    public void TogglePlayerLight(bool toggle)
+    public void LightingModeChanged(int mode)
     {
-        meshLight.transform.gameObject.SetActive(toggle);
-    }
-
-    public void ToggleShaderLight(bool toggle)
-    {
-        shaderLight.transform.gameObject.SetActive(toggle);
+        switch (mode)
+        {
+            case 0:
+                meshLight.transform.gameObject.SetActive(true);
+                shaderLight.transform.gameObject.SetActive(false);
+                break;
+            case 1:
+                meshLight.transform.gameObject.SetActive(false);
+                shaderLight.transform.gameObject.SetActive(true);
+                break;
+            default:
+                break;
+        }
     }
 }
