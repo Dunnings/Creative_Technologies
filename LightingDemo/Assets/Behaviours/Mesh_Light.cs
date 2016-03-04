@@ -28,7 +28,7 @@ public class EndPoint: Point
 
 public class Segment
 {
-    public GameObject parent;
+    public LightOccluder parent;
     public EndPoint p1;
     public EndPoint p2;
     public float d;
@@ -42,19 +42,15 @@ public class Mesh_Light : MonoBehaviour
     public bool m_secondaryMesh = true;
 
     public bool m_findAllColliders = true;
-    public PolygonCollider2D[] colliders;
 
-    public List<Segment> boundarySegments = new List<Segment>();
-    public List<Segment> staticSegments = new List<Segment>();
-    public List<Segment> dynamicSegments = new List<Segment>();
+    public LightOccluder[] toIgnore;
 
-    public List<Segment> combinedSegments = new List<Segment>();
+    public LightOccluder[] occluders;
+    
+    public List<Segment> allSegments = new List<Segment>();
 
-    public List<EndPoint> staticEndpoints = new List<EndPoint>();
-    public List<EndPoint> dynamicEndPoints = new List<EndPoint>();
-    public List<EndPoint> boundaryEndPoints = new List<EndPoint>();
+    public List<EndPoint> allEndPoints = new List<EndPoint>();
 
-    public List<EndPoint> combinedEndPoints = new List<EndPoint>();
     public Point center = new Point(0f, 0f);
 
     public LinkedList<Segment> open = new LinkedList<Segment>();
@@ -103,143 +99,43 @@ public class Mesh_Light : MonoBehaviour
         secondaryMeshFilter.mesh.vertices = new Vector3[512];
         secondaryMeshFilter.mesh.vertices[0] = Vector3.zero;
         secondaryMeshFilter.mesh.triangles = new int[512 * 3];
-
-        staticSegments.Clear();
-        staticEndpoints.Clear();
-        dynamicSegments.Clear();
-        dynamicEndPoints.Clear();
-        CreateSegmentsFromColliders();
-        UpdateLightPosition();
-
     }
 
     public void Update()
     {
         lightMaterialInstance.color = lightColor;
     }
-
-    public void UpdateSegmentsForGameObject(PolygonCollider2D go)
-    {
-        Segment _segment = null;
-        EndPoint _p1 = new EndPoint(0.0f, 0.0f);
-        _p1.segment = _segment;
-        _p1.visualize = true;
-        EndPoint _p2 = new EndPoint(0.0f, 0.0f);
-        _p2.segment = _segment;
-        _p2.visualize = false;
-        _segment = new Segment();
-        _p1.x = go.transform.TransformPoint(go.points[go.points.Length - 1]).x;
-        _p1.y = go.transform.TransformPoint(go.points[go.points.Length - 1]).y;
-        _p2.x = go.transform.TransformPoint(go.points[0]).x;
-        _p2.y = go.transform.TransformPoint(go.points[0]).y;
-        _p1.segment = _segment;
-        _p2.segment = _segment;
-        _segment.p1 = _p1;
-        _segment.p2 = _p2;
-        _segment.d = 0.0f;
-        _segment.parent = go.gameObject;
-        dynamicSegments.Add(_segment);
-        dynamicEndPoints.Add(_p1);
-        dynamicEndPoints.Add(_p2);
-        for (int x = 0; x < go.points.Length - 1; x++)
-        {
-            Segment segment = null;
-            EndPoint p1 = new EndPoint(0.0f, 0.0f);
-            p1.segment = segment;
-            p1.visualize = true;
-            EndPoint p2 = new EndPoint(0.0f, 0.0f);
-            p2.segment = segment;
-            p2.visualize = false;
-            segment = new Segment();
-            p1.x = go.transform.TransformPoint(go.points[x]).x;
-            p1.y = go.transform.TransformPoint(go.points[x]).y;
-            p2.x = go.transform.TransformPoint(go.points[x + 1]).x;
-            p2.y = go.transform.TransformPoint(go.points[x + 1]).y;
-            p1.segment = segment;
-            p2.segment = segment;
-            segment.p1 = p1;
-            segment.p2 = p2;
-            segment.d = 0.0f;
-            segment.parent = go.gameObject;
-            dynamicSegments.Add(segment);
-            dynamicEndPoints.Add(p1);
-            dynamicEndPoints.Add(p2);
-        }
-    }
-	
+    
 	void LateUpdate () {
         transform.rotation = Quaternion.identity;
-        dynamicEndPoints.Clear();
-        dynamicSegments.Clear();
-        for (int i = 0; i < colliders.Length; i++)
-        {
-            if(colliders[i].gameObject.tag == "DynamicLightOccluder")
-            {
-                UpdateSegmentsForGameObject(colliders[i]);
-            }
-        }
+        allEndPoints.Clear();
+        allSegments.Clear();
+        CreateSegmentsFromColliders();
 
         if (center.x != transform.position.x || center.y != transform.position.y)
         {
             UpdateLightPosition();
         }
 
-        //Here I remove unnecasary segments
-        //FrustrumCull();
-
         Sweep();
         CreatePolyList();
         BuildMesh();
     }
 
-    void FrustrumCull()
-    {
-        for (int i = 0; i < combinedEndPoints.Count;)
-        {
-            if (!combinedEndPoints[i].segment.parent.GetComponent<SpriteRenderer>().isVisible)
-            {
-                combinedEndPoints.RemoveAt(i);
-            }
-            else
-            {
-                i++;
-            }
-        }
-    }
-
     void UpdateLightPosition()
     {
-        boundarySegments.Clear();
-        boundaryEndPoints.Clear();
         LoadSquare(m_size, m_margin);
-        combinedSegments.Clear();
-        combinedSegments.AddRange(staticSegments);
-        combinedSegments.AddRange(dynamicSegments);
-        combinedSegments.AddRange(boundarySegments);
-        combinedEndPoints.Clear();
-        combinedEndPoints.AddRange(staticEndpoints);
-        combinedEndPoints.AddRange(dynamicEndPoints);
-        combinedEndPoints.AddRange(boundaryEndPoints);
         SetLightPosition(transform.position.x, transform.position.y);
     }
 
     void GetAllColliders()
     {
-        if (m_findAllColliders)
+        List<LightOccluder> allOccluders = new List<LightOccluder>(FindObjectsOfType<LightOccluder>());
+        for (int i = 0; i < toIgnore.Length; i++)
         {
-            PolygonCollider2D[] old = colliders;
-            List<PolygonCollider2D> results = new List<PolygonCollider2D>(FindObjectsOfType<PolygonCollider2D>());
-            int originalLength = colliders.Length;
-            colliders = new PolygonCollider2D[originalLength + results.Count];
-            for (int i = 0; i < originalLength; i++)
-            {
-                colliders[i] = old[i];
-            }
-            for (int i = 0; i < results.Count; i++)
-            {
-                colliders[i + originalLength] = results[i];
-            }
+            allOccluders.Remove(toIgnore[i]);
         }
+        occluders = allOccluders.ToArray();
     }
 
     void CreatePolyList()
@@ -371,69 +267,71 @@ public class Mesh_Light : MonoBehaviour
     
     private void CreateSegmentsFromColliders()
     {
-        for (int i = 0; i < colliders.Length; i++)
+        for (int i = 0; i < occluders.Length; i++)
         {
-            Segment _segment = null;
-            EndPoint _p1 = new EndPoint(0.0f, 0.0f);
-            _p1.segment = _segment;
-            _p1.visualize = true;
-            EndPoint _p2 = new EndPoint(0.0f, 0.0f);
-            _p2.segment = _segment;
-            _p2.visualize = false;
-            _segment = new Segment();
-            _p1.x = colliders[i].transform.TransformPoint(colliders[i].points[colliders[i].points.Length - 1]).x;
-            _p1.y = colliders[i].transform.TransformPoint(colliders[i].points[colliders[i].points.Length - 1]).y;
-            _p2.x = colliders[i].transform.TransformPoint(colliders[i].points[0]).x;
-            _p2.y = colliders[i].transform.TransformPoint(colliders[i].points[0]).y;
-            _p1.segment = _segment;
-            _p2.segment = _segment;
-            _segment.p1 = _p1;
-            _segment.p2 = _p2;
-            _segment.d = 0.0f;
-            _segment.parent = colliders[i].gameObject;
-            if (_segment.parent.tag == "StaticLightOccluder")
+            bool anyRenderersVisible = false;
+            for (int k = 0; k < occluders[i].myRenderer.Length; k++)
             {
-                staticSegments.Add(_segment);
-                staticEndpoints.Add(_p1);
-                staticEndpoints.Add(_p2);
-            }
-            else if (_segment.parent.tag == "DynamicLightOccluder")
-            {
-                dynamicSegments.Add(_segment);
-                dynamicEndPoints.Add(_p1);
-                dynamicEndPoints.Add(_p2);
-            }
-            for (int x = 0; x < colliders[i].points.Length-1; x++)
-            {
-                Segment segment = null;
-                EndPoint p1 = new EndPoint(0.0f, 0.0f);
-                p1.segment = segment;
-                p1.visualize = true;
-                EndPoint p2 = new EndPoint(0.0f, 0.0f);
-                p2.segment = segment;
-                p2.visualize = false;
-                segment = new Segment();
-                p1.x = colliders[i].transform.TransformPoint(colliders[i].points[x]).x;
-                p1.y = colliders[i].transform.TransformPoint(colliders[i].points[x]).y;
-                p2.x = colliders[i].transform.TransformPoint(colliders[i].points[x+1]).x;
-                p2.y = colliders[i].transform.TransformPoint(colliders[i].points[x+1]).y;
-                p1.segment = segment;
-                p2.segment = segment;
-                segment.p1 = p1;
-                segment.p2 = p2;
-                segment.d = 0.0f;
-                segment.parent = colliders[i].gameObject;
-                if (segment.parent.tag == "StaticLightOccluder")
+                if (occluders[i].myRenderer[k].isVisible)
                 {
-                    staticSegments.Add(segment);
-                    staticEndpoints.Add(p1);
-                    staticEndpoints.Add(p2);
+                    anyRenderersVisible = true;
+                    break;
                 }
-                else if (segment.parent.tag == "DynamicLightOccluder")
+            }
+            if (anyRenderersVisible)
+            {
+                for (int j = 0; j < occluders[i].myColliders.Length; j++)
                 {
-                    dynamicSegments.Add(segment);
-                    dynamicEndPoints.Add(p1);
-                    dynamicEndPoints.Add(p2);
+                    #region First Point and Last Point
+                    Segment _segment = null;
+                    EndPoint _p1 = new EndPoint(0.0f, 0.0f);
+                    _p1.segment = _segment;
+                    _p1.visualize = true;
+                    EndPoint _p2 = new EndPoint(0.0f, 0.0f);
+                    _p2.segment = _segment;
+                    _p2.visualize = false;
+                    _segment = new Segment();
+                    //Save the endpoint coordinates in world space
+                    _p1.x = occluders[i].myColliders[j].transform.TransformPoint(occluders[i].myColliders[j].points[occluders[i].myColliders[j].points.Length - 1]).x;
+                    _p1.y = occluders[i].myColliders[j].transform.TransformPoint(occluders[i].myColliders[j].points[occluders[i].myColliders[j].points.Length - 1]).y;
+                    _p2.x = occluders[i].myColliders[j].transform.TransformPoint(occluders[i].myColliders[j].points[0]).x;
+                    _p2.y = occluders[i].myColliders[j].transform.TransformPoint(occluders[i].myColliders[j].points[0]).y;
+                    _p1.segment = _segment;
+                    _p2.segment = _segment;
+                    _segment.p1 = _p1;
+                    _segment.p2 = _p2;
+                    _segment.d = 0.0f;
+                    _segment.parent = occluders[i];
+                    allSegments.Add(_segment);
+                    allEndPoints.Add(_p1);
+                    allEndPoints.Add(_p2);
+                    #endregion
+                    #region All Other Points on Collider
+                    for (int x = 0; x < occluders[i].myColliders[j].points.Length - 1; x++)
+                    {
+                        Segment segment = null;
+                        EndPoint p1 = new EndPoint(0.0f, 0.0f);
+                        p1.segment = segment;
+                        p1.visualize = true;
+                        EndPoint p2 = new EndPoint(0.0f, 0.0f);
+                        p2.segment = segment;
+                        p2.visualize = false;
+                        segment = new Segment();
+                        p1.x = occluders[i].myColliders[j].transform.TransformPoint(occluders[i].myColliders[j].points[x]).x;
+                        p1.y = occluders[i].myColliders[j].transform.TransformPoint(occluders[i].myColliders[j].points[x]).y;
+                        p2.x = occluders[i].myColliders[j].transform.TransformPoint(occluders[i].myColliders[j].points[x + 1]).x;
+                        p2.y = occluders[i].myColliders[j].transform.TransformPoint(occluders[i].myColliders[j].points[x + 1]).y;
+                        p1.segment = segment;
+                        p2.segment = segment;
+                        segment.p1 = p1;
+                        segment.p2 = p2;
+                        segment.d = 0.0f;
+                        segment.parent = occluders[i];
+                        allSegments.Add(segment);
+                        allEndPoints.Add(p1);
+                        allEndPoints.Add(p2);
+                    }
+                    #endregion
                 }
             }
         }
@@ -446,39 +344,6 @@ public class Mesh_Light : MonoBehaviour
         AddBoundarySegment(transform.position.x + margin, transform.position.y + size - margin, transform.position.x + size - margin, transform.position.y + size - margin);
         AddBoundarySegment(transform.position.x + size - margin, transform.position.y + size - margin, transform.position.x + size - margin, transform.position.y + margin);
         AddBoundarySegment(transform.position.x + size - margin, transform.position.y + margin, transform.position.x + margin, transform.position.y + margin);
-    }
-
-    // Load a set of square blocks, plus any other line segments
-    public void UpdateStaticSegments(List<Segment> walls)
-    {
-        staticSegments.Clear();
-
-        staticEndpoints.Clear();
-        foreach (Segment wall in walls)
-        {
-            if (wall.parent.tag != "DynamicLightOccluder")
-            {
-                staticSegments.Add(wall);
-                staticEndpoints.Add(wall.p1);
-                staticEndpoints.Add(wall.p2);
-            }
-        }
-    }
-    // Load a set of square blocks, plus any other line segments
-    public void UpdateDynamicSegments(List<Segment> walls)
-    {
-        dynamicSegments.Clear();
-        
-        dynamicEndPoints.Clear();
-        foreach (Segment wall in walls)
-        {
-            if (wall.parent.tag == "DynamicLightOccluder")
-            {
-                dynamicSegments.Add(wall);
-                dynamicEndPoints.Add(wall.p1);
-                dynamicEndPoints.Add(wall.p2);
-            }
-        }
     }
 
     // Add a segment, where the first point shows up in the
@@ -531,9 +396,9 @@ public class Mesh_Light : MonoBehaviour
         segment.p2 = p2;
         segment.d = 0.0f;
 
-        boundarySegments.Add(segment);
-        boundaryEndPoints.Add(p1);
-        boundaryEndPoints.Add(p2);
+        allSegments.Add(segment);
+        allEndPoints.Add(p1);
+        allEndPoints.Add(p2);
     }
 
     // Set the light location. Segment and EndPoint data can't be
@@ -543,7 +408,7 @@ public class Mesh_Light : MonoBehaviour
         center.x = x;
         center.y = y;
 
-        foreach(Segment segment in combinedSegments)
+        foreach(Segment segment in allSegments)
         {
             float dx = 0.5f * (segment.p1.x + segment.p2.x) - x;
             float dy = 0.5f * (segment.p1.y + segment.p2.y) - y;
@@ -640,14 +505,14 @@ public class Mesh_Light : MonoBehaviour
     public void Sweep(float maxAngle = 999.0f)
     {
         output.Clear();
-        combinedEndPoints.Sort(CompareEndpoints);
+        allEndPoints.Sort(CompareEndpoints);
 
         open.Clear();
         float beginAngle = 0.0f;
         
         for (int pass = 0; pass < 2; pass++)
         {
-            foreach (EndPoint p in combinedEndPoints)
+            foreach (EndPoint p in allEndPoints)
             {
 
                 if (pass == 1 && p.angle > maxAngle)

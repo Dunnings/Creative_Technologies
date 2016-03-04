@@ -6,6 +6,8 @@ public class Bullet : MonoBehaviour {
     public Vector3 vel;
     public SpriteRenderer renderer;
 
+    public string ownerTag = "Player";
+
     public int lightSize = 3;
 
 	// Use this for initialization
@@ -39,16 +41,23 @@ public class Bullet : MonoBehaviour {
         GetComponent<BoxCollider2D>().enabled = true;
     }
 
-    void OnCollisionEnter2D(Collision2D col)
+    void OnTriggerEnter2D(Collider2D col)
     {
         if (alive)
         {
-            if (col.collider.gameObject.name != "Player")
+            if (col.gameObject.tag != ownerTag)
             {
                 GetComponentInChildren<Shader_Light>().m_lightSize += 2;
-                col.collider.GetComponent<Rigidbody2D>().AddForceAtPosition((col.collider.transform.position - transform.position).normalized * 1000f, transform.position, ForceMode2D.Impulse);
                 StartCoroutine(Dead());
-                ExplosionSystem.Instance.Emit(transform.position);
+                if (ownerTag == "Player")
+                {
+                    ExplosionSystem.Instance.EmitPlayer(transform.position);
+                    col.GetComponent<Rigidbody2D>().AddForceAtPosition((col.transform.position - transform.position).normalized * 1000f, transform.position, ForceMode2D.Impulse);
+                }
+                else
+                {
+                    ExplosionSystem.Instance.EmitEnemy(transform.position);
+                }
             }
         }
     }

@@ -26,14 +26,15 @@ public class Shader_Light : MonoBehaviour {
     // Use this for initialization
     void Awake()
     {
-        m_inputRenderTex = new RenderTexture(m_shadowSize, m_shadowSize, 0);
-        m_middleRenderTex = new RenderTexture(m_shadowSize, 1, 0);
+        m_inputRenderTex = new RenderTexture(m_shadowSize, m_shadowSize, 0, RenderTextureFormat.ARGB32);
+        m_middleRenderTex = new RenderTexture(m_shadowSize, 1, 0, RenderTextureFormat.ARGB32);
         m_material = new Material(Shader.Find("2DLighting/Deferred_Point_2"));
         m_material.SetTexture("_DepthMap", m_middleRenderTex);
         m_material.SetInt("_Penumbra", m_penumbra ? 1 : 0);
         m_material.SetInt("_GradientFalloff", m_gradientFalloff ? 1 : 0);
 
         cam = GetComponent<Camera>();
+        cam.enabled = true;
         cam.targetTexture = m_inputRenderTex;
         int occluders = 0;
         for (int i = 0; i < m_occluderLayers.Count; i++)

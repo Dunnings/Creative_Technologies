@@ -14,7 +14,7 @@ public class ShipController : MonoBehaviour {
 
     float timeLastFired = 0f;
     bool left = true;
-	
+    private Vector3 targetPos;
 	// Update is called once per frame
 	void Update ()
     {
@@ -27,9 +27,8 @@ public class ShipController : MonoBehaviour {
         Vector2 dir = myRigid.velocity;
         float angle = Mathf.Atan2(dir.y, dir.x) * Mathf.Rad2Deg;
         graphic.transform.rotation = Quaternion.AngleAxis(angle - 90, Vector3.forward);
-        Vector3 targetPos = Vector3.Lerp(Camera.main.transform.position, transform.position, Time.deltaTime);
+        targetPos = Vector3.Lerp(Camera.main.transform.position, graphic.transform.position, Time.deltaTime);
         targetPos.z = -10f;
-        Camera.main.transform.position = targetPos;
 
         if (Input.GetButton("Submit"))
         {
@@ -40,7 +39,7 @@ public class ShipController : MonoBehaviour {
                 {
                     index = 0;
                 }
-                go.transform.position = transform.position + graphic.transform.right * (left?-0.37f:0.37f);
+                go.transform.position = graphic.transform.position + graphic.transform.right * (left?-0.37f:0.37f);
                 go.GetComponent<Bullet>().vel = graphic.transform.up;
                 go.transform.rotation = graphic.transform.rotation;
                 go.Spawn(left ? new Color(0f, 0.8f, 1f, 0.05f) : new Color(1f, 0.6f, 0.0f, 0.05f));
@@ -58,5 +57,10 @@ public class ShipController : MonoBehaviour {
                 left = !left;
             }
         }
+    }
+
+    void LateUpdate()
+    {
+        Camera.main.transform.position = targetPos;
     }
 }

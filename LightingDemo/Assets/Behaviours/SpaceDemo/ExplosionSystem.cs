@@ -4,10 +4,11 @@ using System.Collections;
 public class ExplosionSystem : MonoBehaviour {
 
     public static ExplosionSystem Instance;
-    public ParticleSystem particles;
+    public ParticleSystem playerParticles;
+    public ParticleSystem enemyParticles;
 
-	// Use this for initialization
-	void Awake () {
+    // Use this for initialization
+    void Awake () {
         Instance = this;
     }
 	
@@ -16,10 +17,16 @@ public class ExplosionSystem : MonoBehaviour {
 	
 	}
 
-    public void Emit(Vector3 pos, int i = 1)
+    public void EmitPlayer(Vector3 pos, int i = 1)
     {
-        particles.enableEmission = true;
-        particles.transform.position = pos;
-        particles.Emit(i);
+        playerParticles.enableEmission = true;
+        playerParticles.transform.position = pos;
+        playerParticles.Emit(i);
+    }
+    public void EmitEnemy(Vector3 pos, int i = 1)
+    {
+        enemyParticles.enableEmission = true;
+        enemyParticles.transform.position = pos;
+        enemyParticles.Emit(i);
     }
 }
