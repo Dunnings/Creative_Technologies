@@ -91,10 +91,18 @@ public class Mesh_Light : MonoBehaviour
         }
 
         meshFilter.mesh = new Mesh();
+        meshFilter.mesh.MarkDynamic();
         meshRenderer.material = lightMaterialInstance;
+        meshFilter.mesh.vertices = new Vector3[512];
+        meshFilter.mesh.vertices[0] = Vector3.zero;
+        meshFilter.mesh.triangles = new int[512 * 3];
 
         secondaryMeshFilter.mesh = new Mesh();
         secondaryRenderer.material = lightMaterialInstance;
+        secondaryMeshFilter.mesh.MarkDynamic();
+        secondaryMeshFilter.mesh.vertices = new Vector3[512];
+        secondaryMeshFilter.mesh.vertices[0] = Vector3.zero;
+        secondaryMeshFilter.mesh.triangles = new int[512 * 3];
 
         staticSegments.Clear();
         staticEndpoints.Clear();
@@ -170,16 +178,33 @@ public class Mesh_Light : MonoBehaviour
                 UpdateSegmentsForGameObject(colliders[i]);
             }
         }
-        UpdateLightPosition();
 
         if (center.x != transform.position.x || center.y != transform.position.y)
         {
             UpdateLightPosition();
         }
 
+        //Here I remove unnecasary segments
+        //FrustrumCull();
+
         Sweep();
         CreatePolyList();
         BuildMesh();
+    }
+
+    void FrustrumCull()
+    {
+        for (int i = 0; i < combinedEndPoints.Count;)
+        {
+            if (!combinedEndPoints[i].segment.parent.GetComponent<SpriteRenderer>().isVisible)
+            {
+                combinedEndPoints.RemoveAt(i);
+            }
+            else
+            {
+                i++;
+            }
+        }
     }
 
     void UpdateLightPosition()
@@ -238,18 +263,6 @@ public class Mesh_Light : MonoBehaviour
         float xMax = -m_margin + m_size;
         float yMax = -m_margin + m_size;
 
-        //foreach (Vector3 v3 in vertices)
-        //{
-        //    if (v3.x < xMin)
-        //        xMin = v3.x;
-        //    if (v3.y < yMin)
-        //        yMin = v3.y;
-        //    if (v3.x > xMax)
-        //        xMax = v3.x;
-        //    if (v3.y > yMax)
-        //        yMax = v3.y;
-        //}
-
         float xRange = xMax - xMin;
         float yRange = yMax - yMin;
 
@@ -263,6 +276,10 @@ public class Mesh_Light : MonoBehaviour
         return uvs;
     }
 
+    public Vector3[] verts = new Vector3[512];
+    public int[] tris = new int[512 * 3];
+    public Vector3[] verts2 = new Vector3[512];
+    public int[] tris2 = new int[512 * 3];
     void BuildMesh()
     {
         if (poly == null || poly.Count < 3)
@@ -271,64 +288,71 @@ public class Mesh_Light : MonoBehaviour
         }
 
         Vector3 center = transform.position;
-
-        Vector3[] vertices = new Vector3[poly.Count + 1];
-        vertices[0] = Vector3.zero;
-
-        for (int i = 0; i < poly.Count; i++)
+        
+        verts = meshFilter.mesh.vertices;
+        for (int i = 0; i < verts.Length; i++)
         {
-            vertices[i + 1] = poly[i] - center;
-        }
-        meshFilter.mesh.Clear();
-        meshFilter.mesh.vertices = vertices;
-
-        int[] triangles = new int[poly.Count * 3];
-
-        for (int i = 0; i < poly.Count - 1; i++)
-        {
-            triangles[i * 3] = i + 2;
-            triangles[i * 3 + 1] = 0;
-            triangles[i * 3 + 2] = i + 1;
+            if (i < poly.Count)
+            {
+               verts[i + 1] = poly[i] - center;
+            }
+            else
+            {
+                verts[i] = poly[poly.Count-1] - center;
+            }
         }
 
-        triangles[(poly.Count - 1) * 3] = 1;
-        triangles[(poly.Count - 1) * 3 + 1] = 0;
-        triangles[(poly.Count - 1) * 3 + 2] = poly.Count;
+        tris = new int[verts.Length * 3];
 
-        meshFilter.mesh.triangles = triangles;
-        meshFilter.mesh.uv = BuildUVs(vertices);
+        for (int i = 0; i < verts.Length; i++)
+        {
+            if (i < poly.Count)
+            {
+                tris[i * 3] = i + 1;
+                tris[i * 3 + 1] = 0;
+                tris[i * 3 + 2] = i;
+            }
+            else
+            {
+                tris[i * 3] = 0;
+                tris[i * 3 + 1] = 0;
+                tris[i * 3 + 2] = 0;
+            }
+        }
 
-        meshFilter.mesh.RecalculateBounds();
-        meshFilter.mesh.RecalculateNormals();
+        tris[(poly.Count) * 3] = 1;
+        tris[(poly.Count) * 3 + 1] = 0;
+        tris[(poly.Count) * 3 + 2] = poly.Count;
+
+        //Assign verts to mesh vertices
+        meshFilter.mesh.vertices = verts;
+        meshFilter.mesh.triangles = tris;
+
+        //Rebuild UVs
+        meshFilter.mesh.uv = BuildUVs(meshFilter.mesh.vertices);
 
         if (m_secondaryMesh)
         {
-            secondaryMeshFilter.mesh.Clear();
 
-            secondaryRenderer.material = lightMaterialInstance;
-
-            Vector3 center2 = transform.position;
-
-            Vector3[] vertices2 = new Vector3[poly.Count + 1];
-            vertices2[0] = Vector3.zero;
-
-            for (int i = 0; i < poly.Count; i++)
+            verts2 = secondaryMeshFilter.mesh.vertices;
+            for (int i = 0; i < verts2.Length; i++)
             {
-                vertices2[i + 1] = (poly[i] - center) + ((poly[i] - center).normalized * 0.15f);
+                if (i < poly.Count)
+                {
+                    verts2[i + 1] = (poly[i] - center) + ((poly[i] - center).normalized * 0.15f); ;
+                }
+                else
+                {
+                    verts2[i] = poly[poly.Count - 1] - center;
+                }
             }
 
-            secondaryMeshFilter.mesh.vertices = vertices2;
+            //Assign verts to mesh vertices
+            secondaryMeshFilter.mesh.vertices = verts2;
+            secondaryMeshFilter.mesh.triangles = tris;
 
-            secondaryMeshFilter.mesh.triangles = triangles;
-            secondaryMeshFilter.mesh.uv = BuildUVs(vertices2);
-
-            secondaryMeshFilter.mesh.RecalculateBounds();
-            secondaryMeshFilter.mesh.RecalculateNormals();
-        }
-        else
-        {
-            secondaryMeshFilter.mesh = null;
-            secondaryRenderer.material = null;
+            //Rebuild UVs
+            secondaryMeshFilter.mesh.uv = BuildUVs(secondaryMeshFilter.mesh.vertices);
         }
     }
 
@@ -336,8 +360,13 @@ public class Mesh_Light : MonoBehaviour
     {
         for (int i = 0; i < output.Count; i++)
         {
-            Gizmos.DrawWireSphere(new Vector3(output[i].x, output[i].y, 0f), 0.2f);
+            Gizmos.DrawWireSphere(new Vector3(output[i].x, output[i].y, 0f), 0.05f);
         }
+
+        //for (int x = 0; x < secondaryMeshFilter.mesh.vertices.Length; x++)
+        //{
+        //    Gizmos.DrawWireCube(transform.TransformPoint(secondaryMeshFilter.mesh.vertices[x]), Vector3.one * 0.05f);
+        //}
     }
     
     private void CreateSegmentsFromColliders()
@@ -558,11 +587,12 @@ public class Mesh_Light : MonoBehaviour
         // demo of how this fails when a point is very close to the
         // line.
     }
-
-    // Return p*(1-f) + q*f
+    
     static private Point Interpolate(Point p, Point q, float f) {
         return new Point(p.x*(1-f) + q.x* f, p.y*(1-f) + q.y* f);
     }
+
+    bool A1, A2, A3, B1, B2, B3;
 
     // Helper: do we know that segment a is in front of b?
     // Implementation not anti-symmetric (that is to say,
@@ -574,12 +604,12 @@ public class Mesh_Light : MonoBehaviour
         // NOTE: we slightly shorten the segments so that
         // intersections of the endpoints (common) don't count as
         // intersections in this algorithm
-        var A1 = LeftOf(a, Interpolate(b.p1, b.p2, 0.01f));
-        var A2 = LeftOf(a, Interpolate(b.p2, b.p1, 0.01f));
-        var A3 = LeftOf(a, relativeTo);
-        var B1 = LeftOf(b, Interpolate(a.p1, a.p2, 0.01f));
-        var B2 = LeftOf(b, Interpolate(a.p2, a.p1, 0.01f));
-        var B3 = LeftOf(b, relativeTo);
+         A1 = LeftOf(a, Interpolate(b.p1, b.p2, 0.01f));
+         A2 = LeftOf(a, Interpolate(b.p2, b.p1, 0.01f));
+         A3 = LeftOf(a, relativeTo);
+         B1 = LeftOf(b, Interpolate(a.p1, a.p2, 0.01f));
+         B2 = LeftOf(b, Interpolate(a.p2, a.p1, 0.01f));
+         B3 = LeftOf(b, relativeTo);
 
         // NOTE: this algorithm is probably worthy of a short article
         // but for now, draw it on paper to see how it works. Consider
@@ -619,6 +649,7 @@ public class Mesh_Light : MonoBehaviour
         {
             foreach (EndPoint p in combinedEndPoints)
             {
+
                 if (pass == 1 && p.angle > maxAngle)
                 {
                     break;

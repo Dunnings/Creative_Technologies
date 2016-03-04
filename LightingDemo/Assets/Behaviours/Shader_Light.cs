@@ -4,7 +4,7 @@ using System.Collections.Generic;
 
 
 public class Shader_Light : MonoBehaviour {
-    
+
 
     public List<string> m_occluderLayers = new List<string> { "LightOccluder" };
 
@@ -13,7 +13,7 @@ public class Shader_Light : MonoBehaviour {
 
     public Color m_lightColor;
     public int m_lightSize = 20;
-    private int m_shadowSize = 256;
+    private int m_shadowSize = 512;
 
     public RenderTexture m_inputRenderTex;
     public RenderTexture m_middleRenderTex;
@@ -24,7 +24,7 @@ public class Shader_Light : MonoBehaviour {
     private Camera cam;
 
     // Use this for initialization
-    void Start()
+    void Awake()
     {
         m_inputRenderTex = new RenderTexture(m_shadowSize, m_shadowSize, 0);
         m_middleRenderTex = new RenderTexture(m_shadowSize, 1, 0);
@@ -46,7 +46,7 @@ public class Shader_Light : MonoBehaviour {
 
     void Update()
     {
-        cam.Render();
+
         m_material.color = m_lightColor;
 
         m_meshRenderer.transform.localScale = new Vector3(m_lightSize, m_lightSize);

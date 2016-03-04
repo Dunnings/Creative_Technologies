@@ -2,24 +2,25 @@ Shader "Sprites/SS2DLit"
 {
 	Properties
 	{
-		[PerRendererData] _MainTex ("Sprite Texture", 2D) = "white" {}
-		_Color ("Tint", Color) = (1,1,1,1)
+		[PerRendererData] _MainTex("Sprite Texture", 2D) = "white" {}
+	_Color("Tint", Color) = (1,1,1,1)
 		_SpriteLightness("Sprite Lightness", Float) = 0.1
+		_LightMultiplier("Light Multiplier", Float) = 0.1
 		_LightTex("Light Texture", 2D) = "white" {}
-		[MaterialToggle] PixelSnap ("Pixel snap", Float) = 0
+	[MaterialToggle] PixelSnap("Pixel snap", Float) = 0
 		[Toggle] _ScreenSpaceLighting("Screen Space Lighting", Float) = 0
 	}
 
-	SubShader
+		SubShader
 	{
 		Tags
-		{ 
-			"Queue"="Transparent" 
-			"IgnoreProjector"="True" 
-			"RenderType"="Transparent" 
-			"PreviewType"="Plane"
-			"CanUseSpriteAtlas"="True"
-		}
+	{
+		"Queue" = "Transparent"
+		"IgnoreProjector" = "True"
+		"RenderType" = "Transparent"
+		"PreviewType" = "Plane"
+		"CanUseSpriteAtlas" = "True"
+	}
 
 		Cull Off
 		Lighting Off
@@ -27,77 +28,80 @@ Shader "Sprites/SS2DLit"
 		Blend One OneMinusSrcAlpha
 
 		Pass
-		{
+	{
 		CGPROGRAM
-			#pragma vertex vert
-			#pragma fragment frag
-			#pragma multi_compile _ PIXELSNAP_ON
-			#include "UnityCG.cginc"
-			
-			struct appdata_t
-			{
-				float4 vertex   : POSITION;
-				float4 color    : COLOR;
-				float2 texcoord : TEXCOORD0;
-			};
+#pragma vertex vert
+#pragma fragment frag
+#pragma multi_compile _ PIXELSNAP_ON
+#pragma target 3.0
+#include "UnityCG.cginc"
 
-			struct v2f
-			{
-				float4 vertex   : SV_POSITION;
-				fixed4 color    : COLOR;
-				float2 texcoord  : TEXCOORD0;
-				float2 scrPos : SCRCOORD;
-			};
-			
-			fixed4 _Color;
+	struct appdata_t
+	{
+		float4 vertex   : POSITION;
+		float4 color    : COLOR;
+		float2 texcoord : TEXCOORD0;
+	};
 
-			v2f vert(appdata_t IN)
-			{
-				v2f OUT;
-				OUT.vertex = mul(UNITY_MATRIX_MVP, IN.vertex);
-				OUT.texcoord = IN.texcoord;
-				OUT.color = IN.color * _Color;
-				//Used to give the screen position of the vertex
-				OUT.scrPos = ComputeScreenPos(OUT.vertex);
-				#ifdef PIXELSNAP_ON
-				OUT.vertex = UnityPixelSnap (OUT.vertex);
-				#endif
+	struct v2f
+	{
+		float4 vertex   : SV_POSITION;
+		fixed4 color : COLOR;
+		float2 texcoord  : TEXCOORD0;
+		float2 scrPos : TEXCOORD1;
+	};
 
-				return OUT;
-			}
+	fixed4 _Color;
 
-			sampler2D _MainTex;
-			fixed4 SampleSpriteTexture(float2 uv)
-			{
-				fixed4 color = tex2D(_MainTex, uv);
-				return color;
-			}
+	v2f vert(appdata_t IN)
+	{
+		v2f OUT;
+		OUT.vertex = mul(UNITY_MATRIX_MVP, IN.vertex);
+		OUT.texcoord = IN.texcoord;
+		OUT.color = IN.color * _Color;
+		//Used to give the screen position of the vertex
+		OUT.scrPos = ComputeScreenPos(OUT.vertex);
+#ifdef PIXELSNAP_ON
+		OUT.vertex = UnityPixelSnap(OUT.vertex);
+#endif
 
-			sampler2D _LightTex;
-			//This samples the light texture
-			fixed4 SampleLightTexture(float2 uv)
-			{
-				fixed4 color = tex2D(_LightTex, uv);
-				return color;
-			}
+		return OUT;
+	}
 
-			float _ScreenSpaceLighting;
-			float _SpriteLightness;
-			fixed4 frag(v2f IN) : SV_Target
-			{
-				fixed4 lc = SampleLightTexture(IN.scrPos);
-				fixed4 c = SampleSpriteTexture(IN.texcoord);
-				//lc.r 0 = no light
-				//lc.r 1 = full light
+	sampler2D _MainTex;
+	fixed4 SampleSpriteTexture(float2 uv)
+	{
+		fixed4 color = tex2D(_MainTex, uv);
+		return color;
+	}
 
-				if (_ScreenSpaceLighting != 0) {
-					c.rgb *= _SpriteLightness;
-					c.rgb += lc.rgb * 2;
-				}
-				c.rgb *= c.a;
-				return c;
-			}
+	sampler2D _LightTex;
+	//This samples the light texture
+	fixed4 SampleLightTexture(float2 uv)
+	{
+		fixed4 color = tex2D(_LightTex, uv);
+		return color;
+	}
+
+	float _ScreenSpaceLighting;
+	float _LightMultiplier;
+	float _SpriteLightness;
+	fixed4 frag(v2f IN) : SV_Target
+	{
+		fixed4 lc = SampleLightTexture(IN.scrPos);
+	lc *= _LightMultiplier;
+	fixed4 c = SampleSpriteTexture(IN.texcoord);
+	//lc.r 0 = no light
+	//lc.r 1 = full light
+
+	if (_ScreenSpaceLighting != 0) {
+		c.rgb *= _SpriteLightness;
+		c.rgb += lc.rgb * 2;
+	}
+	c.rgb *= c.a;
+	return c;
+	}
 		ENDCG
-		}
+	}
 	}
 }

@@ -37,6 +37,7 @@ Shader "2DLighting/Deferred_Point_2"
 			#pragma vertex vert
 			#pragma fragment frag
 			#pragma multi_compile _ PIXELSNAP_ON
+			#pragma target 3.0
 			#include "UnityCG.cginc"
 			
 			struct appdata_t
@@ -86,9 +87,9 @@ Shader "2DLighting/Deferred_Point_2"
 				//Calculate Theta
 				float theta = atan2(-coord.y, coord.x);
 
-				if (theta > 3.14 / 5.0 || theta < -(3.14 / 5.0)) {
+				/*if (theta > 3.14 / 5.0 || theta < -(3.14 / 5.0)) {
 					return fixed4(0.0, 0.0, 0.0, 0.0);
-				}
+				}*/
 
 				//Calculate R
 				float r = length(coord);

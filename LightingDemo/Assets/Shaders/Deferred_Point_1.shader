@@ -29,6 +29,7 @@ Shader "2DLighting/Deferred_Point_1"
 			#pragma vertex vert
 			#pragma fragment frag
 			#pragma multi_compile _ PIXELSNAP_ON
+			#pragma target 3.0
 			#include "UnityCG.cginc"
 			
 			struct appdata_t
@@ -67,14 +68,14 @@ Shader "2DLighting/Deferred_Point_1"
 			fixed4 frag(v2f IN) : SV_Target
 			{
 				//Height of camera render texture
-				float height = 256;
+				float height = 512;
 				float y = 0;
 				//Used to store the closest occluding pixel's distance from the center in normalized coordinates of 0.0 - 1.0
 				float distance = 1.0;
 
 				//Break the next loop into two sub-loops due to HLSL's limitation on loops with greater than 1024 iterations
 				//Loop through the first half of the render texture
-				[unroll(256)]
+				[unroll(512)]
 				while(y < height)
 				{
 					//Translate the texture coordinate
@@ -95,12 +96,13 @@ Shader "2DLighting/Deferred_Point_1"
 					float currentDistance = y / height;
 
 					//If we have hit an occluder pixel, update distance to be the minimum value between the current distance and the recorded distance
-					if (!(data.r == 1.0 && data.g == 0.0 && data.b == 1.0)) {
+					if (!(data.r == 0.0 && data.g == 1.0 && data.b == 0.0)) {
 						distance = min(distance, currentDistance);
 						break;
 					}
 					y++;
 				}
+				distance += 0.01;
 				//Return the final colour using the final calculated distance
 				return fixed4(distance,distance,distance, 1.0);
 			}
