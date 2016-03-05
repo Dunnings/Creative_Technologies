@@ -45,6 +45,7 @@ public class AIShipController : MonoBehaviour {
                 go.transform.position = graphic.transform.position + graphic.transform.right * (left ? -0.37f : 0.37f);
                 go.GetComponent<Bullet>().vel = graphic.transform.up;
                 go.transform.rotation = graphic.transform.rotation;
+                Physics2D.IgnoreCollision(go.GetComponent<Collider2D>(), GetComponentInChildren<Collider2D>());
                 go.Spawn(left ? new Color(0f, 0.8f, 1f, 0.05f) : new Color(1f, 0.6f, 0.0f, 0.05f));
                 timeLastFired = Time.time;
 

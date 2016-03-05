@@ -10,10 +10,17 @@ public class Bullet : MonoBehaviour {
 
     public int lightSize = 3;
 
+    private float startAlpha = 0f;
+
 	// Use this for initialization
 	void Awake ()
     {
         StartCoroutine(disable());
+    }
+
+    void Start()
+    {
+        startAlpha = GetComponentInChildren<Shader_Light>().m_lightColor.a;
     }
 
     IEnumerator disable()
@@ -33,7 +40,7 @@ public class Bullet : MonoBehaviour {
 
     public void Spawn(Color col)
     {
-        GetComponentInChildren<Shader_Light>().m_lightColor.a = 0.03f;
+        GetComponentInChildren<Shader_Light>().m_lightColor.a = startAlpha;
         gameObject.SetActive(true);
         alive = true;
         StartCoroutine(Life());
@@ -41,18 +48,26 @@ public class Bullet : MonoBehaviour {
         GetComponent<BoxCollider2D>().enabled = true;
     }
 
-    void OnTriggerEnter2D(Collider2D col)
+    void OnCollisionEnter2D(Collision2D col)
     {
         if (alive)
         {
             if (col.gameObject.tag != ownerTag)
             {
+                if (col.collider.GetComponent<Bullet>() != null)
+                {
+                    if (col.collider.GetComponent<Bullet>().ownerTag == ownerTag)
+                    {
+                        return;
+                    }
+                }
+
                 GetComponentInChildren<Shader_Light>().m_lightSize += 2;
                 StartCoroutine(Dead());
                 if (ownerTag == "Player")
                 {
-                    ExplosionSystem.Instance.EmitPlayer(transform.position);
-                    col.GetComponent<Rigidbody2D>().AddForceAtPosition((col.transform.position - transform.position).normalized * 1000f, transform.position, ForceMode2D.Impulse);
+                    ExplosionSystem.Instance.EmitPlayer(col.contacts[0].point);
+                    col.collider.GetComponent<Rigidbody2D>().AddForceAtPosition((col.transform.position - transform.position).normalized * 1000f, transform.position, ForceMode2D.Impulse);
                 }
                 else
                 {
@@ -68,6 +83,14 @@ public class Bullet : MonoBehaviour {
         if (alive)
         {
             StartCoroutine(Dead());
+            if (ownerTag == "Player")
+            {
+                ExplosionSystem.Instance.EmitPlayer(transform.position);
+            }
+            else
+            {
+                ExplosionSystem.Instance.EmitEnemy(transform.position);
+            }
         }
     }
 
@@ -93,7 +116,7 @@ public class Bullet : MonoBehaviour {
             while (f < 0.1f)
             {
                 GetComponentInChildren<Shader_Light>().m_lightSize = 3 - Mathf.FloorToInt((f / 0.1f) * 3);
-                GetComponentInChildren<Shader_Light>().m_lightColor.a = 1f - f / 0.1f;
+                GetComponentInChildren<Shader_Light>().m_lightColor.a = 0.5f - (f / 0.1f) * 0.5f;
                 yield return new WaitForEndOfFrame();
                 f += Time.deltaTime;
             }

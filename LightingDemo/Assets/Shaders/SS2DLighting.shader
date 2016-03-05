@@ -10,9 +10,9 @@
 		Pass
 	{
 		CGPROGRAM
-#pragma vertex vert
-#pragma fragment frag
-#pragma target 3.0
+		#pragma vertex vert
+		#pragma fragment frag
+		#pragma target 3.0
 
 		// note: no SV_POSITION in this struct
 	struct v2f {

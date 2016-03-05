@@ -96,7 +96,7 @@ Shader "Sprites/SS2DLit"
 
 	if (_ScreenSpaceLighting != 0) {
 		c.rgb *= _SpriteLightness;
-		c.rgb += lc.rgb * 2;
+		c.rgb += lc.rgb * _LightMultiplier;
 	}
 	c.rgb *= c.a;
 	return c;

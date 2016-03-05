@@ -21,14 +21,12 @@ public class ShipController : MonoBehaviour {
         float x = Input.GetAxis("Horizontal");
         float y = Input.GetAxis("Vertical");
 
-        myRigid.velocity += new Vector2(x, y) * 0.1f;
+        myRigid.velocity += new Vector2(x, y) * 0.2f;
         myRigid.velocity = myRigid.velocity * 0.95f;
-
-        Vector2 dir = myRigid.velocity;
-        float angle = Mathf.Atan2(dir.y, dir.x) * Mathf.Rad2Deg;
-        graphic.transform.rotation = Quaternion.AngleAxis(angle - 90, Vector3.forward);
-        targetPos = Vector3.Lerp(Camera.main.transform.position, graphic.transform.position, Time.deltaTime);
-        targetPos.z = -10f;
+        if (myRigid.velocity.magnitude > 0.1f)
+        {
+            graphic.transform.up = myRigid.velocity;
+        }
 
         if (Input.GetButton("Submit"))
         {
@@ -42,6 +40,7 @@ public class ShipController : MonoBehaviour {
                 go.transform.position = graphic.transform.position + graphic.transform.right * (left?-0.37f:0.37f);
                 go.GetComponent<Bullet>().vel = graphic.transform.up;
                 go.transform.rotation = graphic.transform.rotation;
+                Physics2D.IgnoreCollision(go.GetComponent<Collider2D>(), GetComponentInChildren<Collider2D>());
                 go.Spawn(left ? new Color(0f, 0.8f, 1f, 0.05f) : new Color(1f, 0.6f, 0.0f, 0.05f));
                 timeLastFired = Time.time;
 
@@ -61,6 +60,8 @@ public class ShipController : MonoBehaviour {
 
     void LateUpdate()
     {
+        targetPos = graphic.transform.position;
+        targetPos.z = -10f;
         Camera.main.transform.position = targetPos;
     }
 }

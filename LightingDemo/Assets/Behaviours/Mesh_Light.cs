@@ -1,5 +1,4 @@
 ﻿using UnityEngine;
-using System.Collections;
 using System.Collections.Generic;
 
 public class Point
@@ -36,87 +35,95 @@ public class Segment
 
 public class Mesh_Light : MonoBehaviour
 {
-    private float m_size = 0f;
-    public float m_margin = 3f;
+    public float lightSize = 3f;
 
-    public bool m_secondaryMesh = true;
-
-    public bool m_findAllColliders = true;
-
-    public LightOccluder[] toIgnore;
-
-    public LightOccluder[] occluders;
+    public LightOccluder[] ignoreOccluders;
     
-    public List<Segment> allSegments = new List<Segment>();
+    private List<Segment> allSegments = new List<Segment>();
 
-    public List<EndPoint> allEndPoints = new List<EndPoint>();
+    private List<EndPoint> allEndPoints = new List<EndPoint>();
 
-    public Point center = new Point(0f, 0f);
+    private Point lightPosition = new Point(0f, 0f);
 
-    public LinkedList<Segment> open = new LinkedList<Segment>();
+    private LinkedList<Segment> open = new LinkedList<Segment>();
+
     public List<Point> output = new List<Point>();
 
-    private List<Vector3> poly = new List<Vector3>();
+    private List<Vector3> pointList = new List<Vector3>();
 
-    List<Segment> lines = new List<Segment>();
+    public Material lightMaterial;
 
     public MeshRenderer meshRenderer;
-    public MeshFilter meshFilter;
-    public Material lightMaterial;
-    [HideInInspector]
-    public Material lightMaterialInstance;
 
-    public MeshRenderer secondaryRenderer;
-    public MeshFilter secondaryMeshFilter;
+    public MeshFilter meshFilter;
+
+    private Material lightMaterialInstance;
+
+    public MeshRenderer expandedRenderer;
+
+    public MeshFilter expandedMeshFilter;
 
     public Color lightColor = Color.white;
     
+    private const int meshVertexCount = 512;
+    private Vector3[] tempMeshVertices = new Vector3[meshVertexCount];
+    private int[] tempMeshTriangles = new int[meshVertexCount * 3];
+    private Vector3[] tempExpandedMeshVertices = new Vector3[meshVertexCount];
+    private int[] expandedMeshTriangles = new int[meshVertexCount * 3];
+
+    /// <summary>
+    /// Run on light creation
+    /// </summary>
     void Start ()
     {
+        //Instantiate a new light material so we can change the light colour independantly of other lights
         lightMaterialInstance = new Material(lightMaterial);
         lightMaterialInstance.color = lightColor;
-        GetAllColliders();
 
-        if (meshRenderer == null && GetComponent<MeshRenderer>() != null)
-        {
-            meshRenderer = GetComponent<MeshRenderer>();
-        }
-        if (meshFilter == null && GetComponent<MeshFilter>() != null)
-        {
-            meshFilter = GetComponent<MeshFilter>();
-        }
-
+        //Create a new mesh, mark it as dynamic and give it default vertex and triangle arrays
         meshFilter.mesh = new Mesh();
         meshFilter.mesh.MarkDynamic();
         meshRenderer.material = lightMaterialInstance;
-        meshFilter.mesh.vertices = new Vector3[512];
+        meshFilter.mesh.vertices = new Vector3[meshVertexCount];
         meshFilter.mesh.vertices[0] = Vector3.zero;
-        meshFilter.mesh.triangles = new int[512 * 3];
+        meshFilter.mesh.triangles = new int[meshVertexCount * 3];
 
-        secondaryMeshFilter.mesh = new Mesh();
-        secondaryRenderer.material = lightMaterialInstance;
-        secondaryMeshFilter.mesh.MarkDynamic();
-        secondaryMeshFilter.mesh.vertices = new Vector3[512];
-        secondaryMeshFilter.mesh.vertices[0] = Vector3.zero;
-        secondaryMeshFilter.mesh.triangles = new int[512 * 3];
+        //Repeat for expanded mesh
+        expandedMeshFilter.mesh = new Mesh();
+        expandedRenderer.material = lightMaterialInstance;
+        expandedMeshFilter.mesh.MarkDynamic();
+        expandedMeshFilter.mesh.vertices = new Vector3[meshVertexCount];
+        expandedMeshFilter.mesh.vertices[0] = Vector3.zero;
+        expandedMeshFilter.mesh.triangles = new int[meshVertexCount * 3];
+
+        //First pass of colliders
+        UpdateLightPosition();
     }
 
+    /// <summary>
+    /// Run every frame
+    /// </summary>
     public void Update()
     {
         lightMaterialInstance.color = lightColor;
     }
-    
-	void LateUpdate () {
+
+    /// <summary>
+    /// Run immediately after update
+    /// </summary>
+    void LateUpdate () {
+        //Make sure the light does not rotate
         transform.rotation = Quaternion.identity;
+
+        //Clear the endpoints and segments every frame
         allEndPoints.Clear();
         allSegments.Clear();
+
+        //Create the segments in the view frustrum this frame
         CreateSegmentsFromColliders();
 
-        if (center.x != transform.position.x || center.y != transform.position.y)
-        {
-            UpdateLightPosition();
-        }
 
+        UpdateLightPosition();
         Sweep();
         CreatePolyList();
         BuildMesh();
@@ -124,40 +131,37 @@ public class Mesh_Light : MonoBehaviour
 
     void UpdateLightPosition()
     {
-        LoadSquare(m_size, m_margin);
+        LoadSquare(lightSize);
         SetLightPosition(transform.position.x, transform.position.y);
     }
 
-    void GetAllColliders()
-    {
-        List<LightOccluder> allOccluders = new List<LightOccluder>(FindObjectsOfType<LightOccluder>());
-        for (int i = 0; i < toIgnore.Length; i++)
-        {
-            allOccluders.Remove(toIgnore[i]);
-        }
-        occluders = allOccluders.ToArray();
-    }
-
+    /// <summary>
+    /// Turns a list of type Points into a list of type Vector3
+    /// </summary>
     void CreatePolyList()
     {
-        poly.Clear();
+        pointList.Clear();
         for (int i = 0; i < output.Count; i++)
         {
             Vector3 v = new Vector3();
             v.x = output[i].x;
             v.y = output[i].y;
             v.z = 0f;
-            poly.Add(v);
+            pointList.Add(v);
         }
     }
 
+    /// <summary>
+    /// Convert list of vertices into UV coordinates
+    /// </summary>
+    /// <param name="vertices">List of vertices to be converted</param>
+    /// <returns></returns>
     Vector2[] BuildUVs(Vector3[] vertices)
     {
-
-        float xMin = m_margin + m_size;
-        float yMin = m_margin + m_size;
-        float xMax = -m_margin + m_size;
-        float yMax = -m_margin + m_size;
+        float xMin = lightSize;
+        float yMin = lightSize;
+        float xMax = -lightSize;
+        float yMax = -lightSize;
 
         float xRange = xMax - xMin;
         float yRange = yMax - yMin;
@@ -172,115 +176,124 @@ public class Mesh_Light : MonoBehaviour
         return uvs;
     }
 
-    public Vector3[] verts = new Vector3[512];
-    public int[] tris = new int[512 * 3];
-    public Vector3[] verts2 = new Vector3[512];
-    public int[] tris2 = new int[512 * 3];
+    /// <summary>
+    /// Use the generated vertices to generate a two meshes
+    /// </summary>
     void BuildMesh()
     {
-        if (poly == null || poly.Count < 3)
+        //If there aren't enough points to build the mesh then return
+        if (pointList == null || pointList.Count < 3)
         {
             return;
         }
 
-        Vector3 center = transform.position;
+        //If there are more points than vertices in the mesh, throw an error and return
+        if(pointList.Count >= meshVertexCount)
+        {
+            Debug.Log("Error, mesh does not have enough vertices");
+            return;
+        }
+
+        //First point is located at the lights origin
+        Vector3 origin = transform.position;
         
-        verts = meshFilter.mesh.vertices;
-        for (int i = 0; i < verts.Length; i++)
+        tempMeshVertices = meshFilter.mesh.vertices;
+        for (int i = 0; i < meshFilter.mesh.vertices.Length; i++)
         {
-            if (i < poly.Count)
+            if (i < pointList.Count)
             {
-               verts[i + 1] = poly[i] - center;
+                tempMeshVertices[i + 1] = pointList[i] - origin;
             }
             else
             {
-                verts[i] = poly[poly.Count-1] - center;
+                tempMeshVertices[i] = pointList[pointList.Count-1] - origin;
             }
         }
 
-        tris = new int[verts.Length * 3];
+        tempMeshTriangles = new int[tempMeshVertices.Length * 3];
 
-        for (int i = 0; i < verts.Length; i++)
+        for (int i = 0; i < tempMeshVertices.Length; i++)
         {
-            if (i < poly.Count)
+            if (i < pointList.Count)
             {
-                tris[i * 3] = i + 1;
-                tris[i * 3 + 1] = 0;
-                tris[i * 3 + 2] = i;
+                tempMeshTriangles[i * 3] = i + 1;
+                tempMeshTriangles[i * 3 + 1] = 0;
+                tempMeshTriangles[i * 3 + 2] = i;
             }
             else
             {
-                tris[i * 3] = 0;
-                tris[i * 3 + 1] = 0;
-                tris[i * 3 + 2] = 0;
+                tempMeshTriangles[i * 3] = 0;
+                tempMeshTriangles[i * 3 + 1] = 0;
+                tempMeshTriangles[i * 3 + 2] = 0;
             }
         }
 
-        tris[(poly.Count) * 3] = 1;
-        tris[(poly.Count) * 3 + 1] = 0;
-        tris[(poly.Count) * 3 + 2] = poly.Count;
+        tempMeshTriangles[(pointList.Count) * 3] = 1;
+        tempMeshTriangles[(pointList.Count) * 3 + 1] = 0;
+        tempMeshTriangles[(pointList.Count) * 3 + 2] = pointList.Count;
 
         //Assign verts to mesh vertices
-        meshFilter.mesh.vertices = verts;
-        meshFilter.mesh.triangles = tris;
+        meshFilter.mesh.vertices = tempMeshVertices;
+        meshFilter.mesh.triangles = tempMeshTriangles;
+
+        meshFilter.mesh.RecalculateBounds();
 
         //Rebuild UVs
         meshFilter.mesh.uv = BuildUVs(meshFilter.mesh.vertices);
-
-        if (m_secondaryMesh)
+        
+        //Secondary mesh
+        tempExpandedMeshVertices = expandedMeshFilter.mesh.vertices;
+        for (int i = 0; i < tempExpandedMeshVertices.Length; i++)
         {
-
-            verts2 = secondaryMeshFilter.mesh.vertices;
-            for (int i = 0; i < verts2.Length; i++)
+            if (i < pointList.Count)
             {
-                if (i < poly.Count)
-                {
-                    verts2[i + 1] = (poly[i] - center) + ((poly[i] - center).normalized * 0.15f); ;
-                }
-                else
-                {
-                    verts2[i] = poly[poly.Count - 1] - center;
-                }
+                tempExpandedMeshVertices[i + 1] = (pointList[i] - origin) + ((pointList[i] - origin).normalized * 0.15f); ;
             }
-
-            //Assign verts to mesh vertices
-            secondaryMeshFilter.mesh.vertices = verts2;
-            secondaryMeshFilter.mesh.triangles = tris;
-
-            //Rebuild UVs
-            secondaryMeshFilter.mesh.uv = BuildUVs(secondaryMeshFilter.mesh.vertices);
+            else
+            {
+                tempExpandedMeshVertices[i] = pointList[pointList.Count - 1] - origin;
+            }
         }
+
+        //Assign verts to mesh vertices
+        expandedMeshFilter.mesh.vertices = tempExpandedMeshVertices;
+        expandedMeshFilter.mesh.triangles = tempMeshTriangles;
+
+        expandedMeshFilter.mesh.RecalculateBounds();
+
+        //Rebuild UVs
+        expandedMeshFilter.mesh.uv = BuildUVs(expandedMeshFilter.mesh.vertices);
     }
 
     void OnDrawGizmos()
     {
-        for (int i = 0; i < output.Count; i++)
-        {
-            Gizmos.DrawWireSphere(new Vector3(output[i].x, output[i].y, 0f), 0.05f);
-        }
-
-        //for (int x = 0; x < secondaryMeshFilter.mesh.vertices.Length; x++)
+        //for (int i = 0; i < output.Count; i++)
         //{
-        //    Gizmos.DrawWireCube(transform.TransformPoint(secondaryMeshFilter.mesh.vertices[x]), Vector3.one * 0.05f);
+        //    Gizmos.DrawWireSphere(new Vector3(output[i].x, output[i].y, 0f), 0.05f);
+        //}
+
+        //for (int x = 0; x < meshFilter.mesh.vertices.Length; x++)
+        //{
+        //    Gizmos.DrawWireCube(transform.TransformPoint(meshFilter.mesh.vertices[x]), Vector3.one * 0.05f);
         //}
     }
     
     private void CreateSegmentsFromColliders()
     {
-        for (int i = 0; i < occluders.Length; i++)
+        for (int i = 0; i < OccluderManager.Instance.occludersInFrustrum.Length; i++)
         {
-            bool anyRenderersVisible = false;
-            for (int k = 0; k < occluders[i].myRenderer.Length; k++)
+            bool isInIgnoreList = false;
+            for (int k = 0; k < ignoreOccluders.Length; k++)
             {
-                if (occluders[i].myRenderer[k].isVisible)
+               if(OccluderManager.Instance.occludersInFrustrum[i] == ignoreOccluders[k])
                 {
-                    anyRenderersVisible = true;
+                    isInIgnoreList = true;
                     break;
                 }
             }
-            if (anyRenderersVisible)
+            if (!isInIgnoreList)
             {
-                for (int j = 0; j < occluders[i].myColliders.Length; j++)
+                for (int j = 0; j < OccluderManager.Instance.occludersInFrustrum[i].myColliders.Length; j++)
                 {
                     #region First Point and Last Point
                     Segment _segment = null;
@@ -292,22 +305,22 @@ public class Mesh_Light : MonoBehaviour
                     _p2.visualize = false;
                     _segment = new Segment();
                     //Save the endpoint coordinates in world space
-                    _p1.x = occluders[i].myColliders[j].transform.TransformPoint(occluders[i].myColliders[j].points[occluders[i].myColliders[j].points.Length - 1]).x;
-                    _p1.y = occluders[i].myColliders[j].transform.TransformPoint(occluders[i].myColliders[j].points[occluders[i].myColliders[j].points.Length - 1]).y;
-                    _p2.x = occluders[i].myColliders[j].transform.TransformPoint(occluders[i].myColliders[j].points[0]).x;
-                    _p2.y = occluders[i].myColliders[j].transform.TransformPoint(occluders[i].myColliders[j].points[0]).y;
+                    _p1.x = OccluderManager.Instance.occludersInFrustrum[i].myColliders[j].transform.TransformPoint(OccluderManager.Instance.occludersInFrustrum[i].myColliders[j].points[OccluderManager.Instance.occludersInFrustrum[i].myColliders[j].points.Length - 1]).x;
+                    _p1.y = OccluderManager.Instance.occludersInFrustrum[i].myColliders[j].transform.TransformPoint(OccluderManager.Instance.occludersInFrustrum[i].myColliders[j].points[OccluderManager.Instance.occludersInFrustrum[i].myColliders[j].points.Length - 1]).y;
+                    _p2.x = OccluderManager.Instance.occludersInFrustrum[i].myColliders[j].transform.TransformPoint(OccluderManager.Instance.occludersInFrustrum[i].myColliders[j].points[0]).x;
+                    _p2.y = OccluderManager.Instance.occludersInFrustrum[i].myColliders[j].transform.TransformPoint(OccluderManager.Instance.occludersInFrustrum[i].myColliders[j].points[0]).y;
                     _p1.segment = _segment;
                     _p2.segment = _segment;
                     _segment.p1 = _p1;
                     _segment.p2 = _p2;
                     _segment.d = 0.0f;
-                    _segment.parent = occluders[i];
+                    _segment.parent = OccluderManager.Instance.occludersInFrustrum[i];
                     allSegments.Add(_segment);
                     allEndPoints.Add(_p1);
                     allEndPoints.Add(_p2);
                     #endregion
                     #region All Other Points on Collider
-                    for (int x = 0; x < occluders[i].myColliders[j].points.Length - 1; x++)
+                    for (int x = 0; x < OccluderManager.Instance.occludersInFrustrum[i].myColliders[j].points.Length - 1; x++)
                     {
                         Segment segment = null;
                         EndPoint p1 = new EndPoint(0.0f, 0.0f);
@@ -317,16 +330,16 @@ public class Mesh_Light : MonoBehaviour
                         p2.segment = segment;
                         p2.visualize = false;
                         segment = new Segment();
-                        p1.x = occluders[i].myColliders[j].transform.TransformPoint(occluders[i].myColliders[j].points[x]).x;
-                        p1.y = occluders[i].myColliders[j].transform.TransformPoint(occluders[i].myColliders[j].points[x]).y;
-                        p2.x = occluders[i].myColliders[j].transform.TransformPoint(occluders[i].myColliders[j].points[x + 1]).x;
-                        p2.y = occluders[i].myColliders[j].transform.TransformPoint(occluders[i].myColliders[j].points[x + 1]).y;
+                        p1.x = OccluderManager.Instance.occludersInFrustrum[i].myColliders[j].transform.TransformPoint(OccluderManager.Instance.occludersInFrustrum[i].myColliders[j].points[x]).x;
+                        p1.y = OccluderManager.Instance.occludersInFrustrum[i].myColliders[j].transform.TransformPoint(OccluderManager.Instance.occludersInFrustrum[i].myColliders[j].points[x]).y;
+                        p2.x = OccluderManager.Instance.occludersInFrustrum[i].myColliders[j].transform.TransformPoint(OccluderManager.Instance.occludersInFrustrum[i].myColliders[j].points[x + 1]).x;
+                        p2.y = OccluderManager.Instance.occludersInFrustrum[i].myColliders[j].transform.TransformPoint(OccluderManager.Instance.occludersInFrustrum[i].myColliders[j].points[x + 1]).y;
                         p1.segment = segment;
                         p2.segment = segment;
                         segment.p1 = p1;
                         segment.p2 = p2;
                         segment.d = 0.0f;
-                        segment.parent = occluders[i];
+                        segment.parent = OccluderManager.Instance.occludersInFrustrum[i];
                         allSegments.Add(segment);
                         allEndPoints.Add(p1);
                         allEndPoints.Add(p2);
@@ -338,12 +351,12 @@ public class Mesh_Light : MonoBehaviour
     }
 
     // Helper function to construct segments along the outside perimeter
-    private void LoadSquare(float size, float margin)
+    private void LoadSquare(float margin)
     {
-        AddBoundarySegment(transform.position.x + margin, transform.position.y + margin, transform.position.x + margin, transform.position.y + size - margin);
-        AddBoundarySegment(transform.position.x + margin, transform.position.y + size - margin, transform.position.x + size - margin, transform.position.y + size - margin);
-        AddBoundarySegment(transform.position.x + size - margin, transform.position.y + size - margin, transform.position.x + size - margin, transform.position.y + margin);
-        AddBoundarySegment(transform.position.x + size - margin, transform.position.y + margin, transform.position.x + margin, transform.position.y + margin);
+        AddBoundarySegment(transform.position.x + margin, transform.position.y + margin, transform.position.x + margin, transform.position.y - margin);
+        AddBoundarySegment(transform.position.x + margin, transform.position.y - margin, transform.position.x - margin, transform.position.y - margin);
+        AddBoundarySegment(transform.position.x - margin, transform.position.y - margin, transform.position.x - margin, transform.position.y + margin);
+        AddBoundarySegment(transform.position.x - margin, transform.position.y + margin, transform.position.x + margin, transform.position.y + margin);
     }
 
     // Add a segment, where the first point shows up in the
@@ -405,8 +418,8 @@ public class Mesh_Light : MonoBehaviour
     // processed until the light location is known.
     public void SetLightPosition(float x, float y)
     {
-        center.x = x;
-        center.y = y;
+        lightPosition.x = x;
+        lightPosition.y = y;
 
         foreach(Segment segment in allSegments)
         {
@@ -466,38 +479,19 @@ public class Mesh_Light : MonoBehaviour
     // in the visibility algorithm; I don't think it handles all
     // cases. See http://www.redblobgames.com/articles/visibility/segment-sorting.html
     private bool SegmentInFrontOfSegment(Segment a, Segment b, Point relativeTo) {
-        // NOTE: we slightly shorten the segments so that
-        // intersections of the endpoints (common) don't count as
-        // intersections in this algorithm
-         A1 = LeftOf(a, Interpolate(b.p1, b.p2, 0.01f));
-         A2 = LeftOf(a, Interpolate(b.p2, b.p1, 0.01f));
-         A3 = LeftOf(a, relativeTo);
-         B1 = LeftOf(b, Interpolate(a.p1, a.p2, 0.01f));
-         B2 = LeftOf(b, Interpolate(a.p2, a.p1, 0.01f));
-         B3 = LeftOf(b, relativeTo);
+        A1 = LeftOf(a, Interpolate(b.p1, b.p2, 0.01f));
+        A2 = LeftOf(a, Interpolate(b.p2, b.p1, 0.01f));
+        A3 = LeftOf(a, relativeTo);
+        B1 = LeftOf(b, Interpolate(a.p1, a.p2, 0.01f));
+        B2 = LeftOf(b, Interpolate(a.p2, a.p1, 0.01f));
+        B3 = LeftOf(b, relativeTo);
 
-        // NOTE: this algorithm is probably worthy of a short article
-        // but for now, draw it on paper to see how it works. Consider
-        // the line A1-A2. If both B1 and B2 are on one side and
-        // relativeTo is on the other side, then A is in between the
-        // viewer and B. We can do the same with B1-B2: if A1 and A2
-        // are on one side, and relativeTo is on the other side, then
-        // B is in between the viewer and A.
         if (B1 == B2 && B2 != B3) return true;
         if (A1 == A2 && A2 == A3) return true;
         if (A1 == A2 && A2 != A3) return false;
         if (B1 == B2 && B2 == B3) return false;
 
-        // If A1 != A2 and B1 != B2 then we have an intersection.
-        // Expose it for the GUI to show a message. A more robust
-        // implementation would split segments at intersections so
-        // that part of the segment is in front and part is behind.
         return false;
-
-        // NOTE: previous implementation was a.d < b.d. That's simpler
-        // but trouble when the segments are of dissimilar sizes. If
-        // you're on a grid and the segments are similarly sized, then
-        // using distance will be a simpler and faster implementation.
     }
 
     // Run the algorithm, sweeping over all or part of the circle to find
@@ -525,7 +519,7 @@ public class Mesh_Light : MonoBehaviour
                 if (p.begin)
                 {
                     LinkedListNode<Segment> node = open.First;
-                    while (node != null && SegmentInFrontOfSegment(p.segment, node.Value, center))
+                    while (node != null && SegmentInFrontOfSegment(p.segment, node.Value, lightPosition))
                     {
                         node = node.Next;
                     }
@@ -565,8 +559,8 @@ public class Mesh_Light : MonoBehaviour
     
     private void AddTriangle(float angle1, float angle2, Segment segment)
     {
-        Point p1 = center;
-        Point p2 = new Point(center.x + Mathf.Cos(angle1), center.y + Mathf.Sin(angle1));
+        Point p1 = lightPosition;
+        Point p2 = new Point(lightPosition.x + Mathf.Cos(angle1), lightPosition.y + Mathf.Sin(angle1));
         Point p3 = new Point(0.0f, 0.0f);
         Point p4 = new Point(0.0f, 0.0f);
 
@@ -579,16 +573,16 @@ public class Mesh_Light : MonoBehaviour
         }
         else
         {
-            p3.x = center.x + Mathf.Cos(angle1) * 500;
-            p3.y = center.y + Mathf.Sin(angle1) * 500;
-            p4.x = center.x + Mathf.Cos(angle2) * 500;
-            p4.y = center.y + Mathf.Sin(angle2) * 500;
+            p3.x = lightPosition.x + Mathf.Cos(angle1) * 500;
+            p3.y = lightPosition.y + Mathf.Sin(angle1) * 500;
+            p4.x = lightPosition.x + Mathf.Cos(angle2) * 500;
+            p4.y = lightPosition.y + Mathf.Sin(angle2) * 500;
         }
 
         var pBegin = LineIntersection(p3, p4, p1, p2);
 
-        p2.x = center.x + Mathf.Cos(angle2);
-        p2.y = center.y + Mathf.Sin(angle2);
+        p2.x = lightPosition.x + Mathf.Cos(angle2);
+        p2.y = lightPosition.y + Mathf.Sin(angle2);
         var pEnd = LineIntersection(p3, p4, p1, p2);
 
         output.Add(pBegin);
