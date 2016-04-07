@@ -6,11 +6,13 @@ public class SpaceGenerator : MonoBehaviour {
 
     public List<GameObject> meteorGOs = new List<GameObject>();
 
-    float meteorCount = 40;
+    float meteorCount = 20;
     float mapWidth = 10;
     float mapHeight = 6;
 
-	// Use this for initialization
+	/// <summary>
+    /// Instantiate given number of asteroids on application start
+    /// </summary>
 	void Awake () {
         for (int i = 0; i < meteorCount; i++)
         {
@@ -22,10 +24,5 @@ public class SpaceGenerator : MonoBehaviour {
             rb.AddTorque(Random.Range(-1000f, 1000f), ForceMode2D.Force);
             go.transform.parent = transform;
         }
-	}
-	
-	// Update is called once per frame
-	void Update () {
-	
 	}
 }

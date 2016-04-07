@@ -34,12 +34,13 @@ public class Bullet : MonoBehaviour {
     void Update () {
         if (alive)
         {
-            transform.position += vel * Time.deltaTime * 5f;
+            transform.position += vel * Time.deltaTime * 7.5f;
         }
 	}
 
     public void Spawn(Color col)
     {
+        GetComponentInChildren<Shader_Light>().m_lightSize = lightSize;
         GetComponentInChildren<Shader_Light>().m_lightColor.a = startAlpha;
         gameObject.SetActive(true);
         alive = true;
@@ -48,26 +49,25 @@ public class Bullet : MonoBehaviour {
         GetComponent<BoxCollider2D>().enabled = true;
     }
 
-    void OnCollisionEnter2D(Collision2D col)
+    void OnTriggerEnter2D(Collider2D other)
     {
         if (alive)
         {
-            if (col.gameObject.tag != ownerTag)
+            if (other.gameObject.tag != ownerTag)
             {
-                if (col.collider.GetComponent<Bullet>() != null)
+                if (other.GetComponent<Bullet>() != null)
                 {
-                    if (col.collider.GetComponent<Bullet>().ownerTag == ownerTag)
+                    if (other.GetComponent<Bullet>().ownerTag == ownerTag)
                     {
                         return;
                     }
                 }
-
-                GetComponentInChildren<Shader_Light>().m_lightSize += 2;
+                
                 StartCoroutine(Dead());
                 if (ownerTag == "Player")
                 {
-                    ExplosionSystem.Instance.EmitPlayer(col.contacts[0].point);
-                    col.collider.GetComponent<Rigidbody2D>().AddForceAtPosition((col.transform.position - transform.position).normalized * 1000f, transform.position, ForceMode2D.Impulse);
+                    ExplosionSystem.Instance.EmitPlayer(transform.position);
+                    other.GetComponent<Rigidbody2D>().AddForceAtPosition((other.transform.position - transform.position).normalized * 1000f, transform.position, ForceMode2D.Impulse);
                 }
                 else
                 {

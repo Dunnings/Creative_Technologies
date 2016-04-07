@@ -21,7 +21,7 @@ public class Shader_Light : MonoBehaviour {
 
     public MeshRenderer m_meshRenderer;
 
-    private Camera cam;
+    private Camera m_camera;
 
     // Use this for initialization
     void Awake()
@@ -33,25 +33,24 @@ public class Shader_Light : MonoBehaviour {
         m_material.SetInt("_Penumbra", m_penumbra ? 1 : 0);
         m_material.SetInt("_GradientFalloff", m_gradientFalloff ? 1 : 0);
 
-        cam = GetComponent<Camera>();
-        cam.enabled = true;
-        cam.targetTexture = m_inputRenderTex;
+        m_camera = GetComponent<Camera>();
+        m_camera.enabled = true;
+        m_camera.targetTexture = m_inputRenderTex;
         int occluders = 0;
         for (int i = 0; i < m_occluderLayers.Count; i++)
         {
             occluders = occluders | (1 << LayerMask.NameToLayer(m_occluderLayers[i]));
         }
-        cam.cullingMask = occluders;
+        m_camera.cullingMask = occluders;
         m_meshRenderer.material = m_material;
     }
 
     void Update()
     {
-
         m_material.color = m_lightColor;
 
         m_meshRenderer.transform.localScale = new Vector3(m_lightSize, m_lightSize);
-        cam.orthographicSize = m_lightSize * 0.5f - 0.1f;
+        m_camera.orthographicSize = m_lightSize * 0.5f - 0.1f;
     }
     
 	void OnPostRender()
