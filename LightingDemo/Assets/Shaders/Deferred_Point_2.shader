@@ -94,7 +94,7 @@ Shader "2DLighting/Deferred_Point_2"
 				//Calculate R
 				float r = length(coord);
 				//Calculate the polar coordinate from Theta and R
-				float newCoord = (theta + (3.14159265359)) / (2.0*(3.14159265359));
+				float newCoord = (theta + (3.14)) / (2.0*(3.14));
 
 				//The texture coordinate to sample from the depth map
 				float2 tc = (newCoord, newCoord);

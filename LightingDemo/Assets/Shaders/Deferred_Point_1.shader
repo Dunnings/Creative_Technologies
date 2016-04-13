@@ -3,8 +3,8 @@ Shader "2DLighting/Deferred_Point_1"
 
 	Properties
 	{
-		//The texture to write the output to
 		[PerRendererData] _MainTex("Output Texture", 2D) = "black" {}
+		_DistanceModifier("Distance Modifier", Float) = 0.0
 	}
 
 	SubShader
@@ -31,7 +31,7 @@ Shader "2DLighting/Deferred_Point_1"
 			#pragma multi_compile _ PIXELSNAP_ON
 			#pragma target 3.0
 			#include "UnityCG.cginc"
-			
+
 			struct appdata_t
 			{
 				float4 vertex   : POSITION;
@@ -42,10 +42,10 @@ Shader "2DLighting/Deferred_Point_1"
 			struct v2f
 			{
 				float4 vertex   : SV_POSITION;
-				fixed4 color    : COLOR;
+				fixed4 color : COLOR;
 				float2 texcoord  : TEXCOORD0;
 			};
-			
+
 			fixed4 _Color;
 			v2f vert(appdata_t IN)
 			{
@@ -64,36 +64,44 @@ Shader "2DLighting/Deferred_Point_1"
 				return color;
 			}
 
-			//Main fragment shader
-			fixed4 frag(v2f IN) : SV_Target
-			{
+			float CalculateDistance(float xCoord) {
 				//Height of camera render texture
 				float height = 512;
-				float y = 0;
-				//Used to store the closest occluding pixel's distance from the center in normalized coordinates of 0.0 - 1.0
+
+				//Variables used inside the loop
+				//Defined here so they are not being initialized every iteration of the loop
+				float2 coord;
+				float theta;
+				float r;
+				float2 newCoord;
+				fixed4 data;
+				float currentDistance;
+
 				float distance = 1.0;
+				float y = 0;
 
 				//Break the next loop into two sub-loops due to HLSL's limitation on loops with greater than 1024 iterations
 				//Loop through the first half of the render texture
 				[unroll(512)]
-				while(y < height)
+				while (y < height)
 				{
 					//Translate the texture coordinate
-					float2 coord = float2(IN.texcoord[0], y / height) * 2.0 - 1.0;
+					coord = float2(xCoord, y / height) * 2.0 - 1.0;
+
 					//Calculate Theta
-					float theta = (3.14)*1.5 + coord[0] * (3.14);
+					theta = (3.14)*1.5 + coord[0] * (3.14);
 
 					//Calculate R
-					float r = (1.0 + coord[1]) * 0.5;
+					r = (1.0 + coord[1]) * 0.5;
 
 					//Coordinate to sample from input render texture
-					float2 newCoord = float2(-r * sin(theta), -r * cos(theta)) / 2.0 + 0.5;
+					newCoord = float2(-r * sin(theta), -r * cos(theta)) / 2.0 + 0.5;
 
 					//Sample the input render texture at the new coordinate	
-					fixed4 data = SampleMainTexture(newCoord);
+					data = SampleMainTexture(newCoord);
 
 					//Calculate the distance from the top of the render texture
-					float currentDistance = y / height;
+					currentDistance = y / height;
 
 					//If we have hit an occluder pixel, update distance to be the minimum value between the current distance and the recorded distance
 					if (!(data.r == 0.0 && data.g == 1.0 && data.b == 0.0)) {
@@ -102,7 +110,20 @@ Shader "2DLighting/Deferred_Point_1"
 					}
 					y++;
 				}
-				distance += 0.01;
+
+				return distance;
+			}
+
+			//Main fragment shader
+			float _DistanceModifier;
+			fixed4 frag(v2f IN) : SV_Target
+			{
+				//Calculate the distance from this pixel to an occluding pixel
+				float distance = CalculateDistance(IN.texcoord[0]);
+				
+				//Add the given distance modifier
+				distance += _DistanceModifier;
+
 				//Return the final colour using the final calculated distance
 				return fixed4(distance,distance,distance, 1.0);
 			}

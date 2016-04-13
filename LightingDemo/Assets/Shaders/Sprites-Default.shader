@@ -1,8 +1,9 @@
-Shader "2DLighting/ScreenSpaceLitSprite"
+Shader "2DLighting/SS2DSS"
 {
 	Properties
 	{
 		[PerRendererData] _MainTex("Sprite Texture", 2D) = "white" {}
+		_Color("Tint", Color) = (1,1,1,1)
 		_SpriteLightness("Sprite Lightness", Float) = 0.1
 		_LightMultiplier("Light Multiplier", Float) = 0.1
 		_LightTex("Light Texture", 2D) = "white" {}
@@ -80,6 +81,7 @@ Shader "2DLighting/ScreenSpaceLitSprite"
 				return color;
 			}
 
+			fixed4 _Color;
 			float _ScreenSpaceLighting;
 			float _LightMultiplier;
 			float _SpriteLightness;
@@ -88,6 +90,7 @@ Shader "2DLighting/ScreenSpaceLitSprite"
 				fixed4 lc = SampleLightTexture(IN.scrPos);
 				lc *= _LightMultiplier;
 				fixed4 c = SampleSpriteTexture(IN.texcoord);
+				c *= _Color;
 				//lc.r 0 = no light
 				//lc.r 1 = full light
 				if (_ScreenSpaceLighting != 0) {

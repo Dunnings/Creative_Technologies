@@ -66,4 +66,22 @@ public class OccluderManager : MonoBehaviour {
         }
         occludersInFrustrum = allOccluders.ToArray();
     }
+
+    /// <summary>
+    /// Forces the removal of an occluder from the global list
+    /// Useful for when a gameobject is destroyed
+    /// Consider calling this automatically when an object is Destroyed by overriding Destroy() function
+    /// </summary>
+    /// <param name="occluder">LightOccluder to remove</param>
+    public void RemoveOccluder(LightOccluder occluder)
+    {
+        List<LightOccluder> newList = new List<LightOccluder>();
+        for (int i = 0; i < occludersInFrustrum.Length; i++)
+        {
+            if(occludersInFrustrum[i] != occluder) {
+                newList.Add(occludersInFrustrum[i]);
+            }
+        }
+        occludersInFrustrum = newList.ToArray();
+    }
 }

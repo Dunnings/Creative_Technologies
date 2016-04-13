@@ -1,15 +1,15 @@
 ﻿using UnityEngine;
 using UnityEngine.UI;
-using System.Collections;
+using System.Collections.Generic;
 
+/// <summary>
+/// This class is used to display debug information
+/// </summary>
 public class DebugInfo : MonoBehaviour {
 
     //Array of debug labels
     public Text[] DebugLabels;
-
-    //Array of divider text elements
-    public Text[] Dividers;
-
+    
     //Array of start sizes for dividers
     int[] DividerStartSize;
 
@@ -18,27 +18,52 @@ public class DebugInfo : MonoBehaviour {
 
     //Should be moved to a seperate class here for convenience
     public RenderTexture RenTex;
+
+    //Last 30 frame times
+    List<float> previousFrameSamples = new List<float>();
+
+    private int frameSampleCount = 30;
+
+    private KeyCode[] levelKeys = new KeyCode[4] { KeyCode.Alpha1, KeyCode.Alpha2, KeyCode.Alpha3, KeyCode.Alpha4 };
     
     void Start () {
-        //Store the start size of each divider
-        DividerStartSize = new int[Dividers.Length];
-        for (int i = 0; i < Dividers.Length; i++)
-        {
-            DividerStartSize[i] = Dividers[i].text.Length;
-        }
-
-
         //Put here but should be moved to a light manager
         RenTex.height = Screen.height;
         RenTex.width = Screen.width;
 	}
+
+    void Update()
+    {
+        //Check if the user has pressed any keys to load levels
+        for (int i = 0; i < levelKeys.Length; i++)
+        {
+            if (Input.GetKeyDown(levelKeys[i]))
+            {
+                //Load the appropriate level
+                Application.LoadLevel(i);
+            }
+        }
+        //If the user has pressed escape
+        if (Input.GetKeyDown(KeyCode.Escape))
+        {
+            //Exit the application
+            Application.Quit();
+        }
+    }
 	
 	void LateUpdate () {
         //Every 0.2 seconds
         if (Time.time - delayedUpdateLastTime > 0.2f)
         {
             //Update relevant debug information
-            DebugLabels[0].text = (1f / Time.deltaTime).ToString("0.0");
+            float avFPS = 0f;
+            for (int i = 0; i < previousFrameSamples.Count; i++)
+            {
+                avFPS += previousFrameSamples[i];
+            }
+            avFPS /= previousFrameSamples.Count;
+
+            DebugLabels[0].text = avFPS.ToString("0.0");
             DebugLabels[1].text = FindObjectsOfType<Mesh_Light>().Length.ToString("0");
             DebugLabels[2].text = FindObjectsOfType<Shader_Light>().Length.ToString("0");
             DebugLabels[3].text = (OccluderManager.Instance.occludersInFrustrum.Length).ToString("0");
@@ -63,14 +88,10 @@ public class DebugInfo : MonoBehaviour {
             delayedUpdateLastTime = Time.time;
         }
 
-        //Update divider sizes
-        for (int i = 0; i < Dividers.Length; i++)
+        previousFrameSamples.Add(1f / Time.deltaTime);
+        if(previousFrameSamples.Count > frameSampleCount)
         {
-            Dividers[i].text = "";
-            for (int x = 0; x < DividerStartSize[i] + (5-DebugLabels[i].text.Length); x++)
-            {
-                Dividers[i].text += "_";
-            }
+            previousFrameSamples.RemoveAt(0);
         }
 	}
 }
